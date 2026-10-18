@@ -26,10 +26,10 @@ Successful, traceable real HTTP policy evaluations. No actual financial refund i
 - Policy CRUD with constrained typed conditions; versioning (draft vs published); deterministic engine.
 - Request evaluation with JSON API, decision records, default deny, idempotency.
 - Real operation dashboard, decision table/details, functioning policy form.
-- Replay Lab with before/after decisions using real recorded requests (next build).
-- Human approval queue with authorization checks (next build).
-- Usage metering, pricing page, usage caps (next build).
-- Public judge demo and landing page (next build).
+- Replay Lab with frozen recorded/baseline/candidate decisions from real history (BUILD 02).
+- Human documentary approval with authorization, expiry and freshness checks (BUILD 02).
+- Actual usage and proposed pricing (BUILD 02); paid entitlements/usage caps remain deferred.
+- Stateless read-only public judge tour, landing page and isolated production packaging (BUILD 03); remote launch is not authorized/performed.
 
 ## Out of scope initially
 Generic conversation chatbot; real payment transfers; an SDK in five languages; SOC 2 certification; autonomous arbitrary tool execution; enterprise SSO; cross-region multicloud; advanced billing gateway; multi-agent workflow builder; mandatory LLM on critical decision path.

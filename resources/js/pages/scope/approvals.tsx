@@ -50,7 +50,7 @@ export default function Approvals({
                         <DecisionsTable rows={historical!.data} />
                     </>
                 ) : approvals.data.length ? (
-                    <div className="scope-table-scroll">
+                    <div className="scope-table-scroll" tabIndex={0} role="region" aria-label="Approvals table">
                         <table className="scope-table">
                             <thead>
                                 <tr>

@@ -40,5 +40,7 @@ A result is accepted only after a command or browser journey truly passes. Do no
 - If Playwright is available, run a happy-path browser test; otherwise explicitly report skipped reason.
 
 ## Reporting format
+
+BUILD 03 additionally verifies opt-in/idempotent setup refusal on user data, fixed-tenant public projections, zero public GET writes/cookies, credential/foreign-UUID leakage, blocked public mutations, registration/login abuse with spoofed forwarded IPs, explicit trusted-proxy behavior, generic production errors, no false mail delivery, security headers/nonces and separate readiness. Production-mode HTTP/browser tests use a new isolated PostgreSQL service and built assets at 18733, with desktop/mobile, axe and dialog checks. Runtime DB privilege, private file/host/CSRF probes, 10,000-row query/replay scale, modest load and a 13-table backup/restore drill are separate executable checks. Remote TLS/SMTP, external provider integration and independent certification must stay NOT TESTED until actually verified.
 At the end of a Codex run, output:
 1) implemented behavior, 2) paths changed, 3) test commands and counts/results, 4) demo URLs/credentials if local dev and safe to share, 5) known blockers, 6) proposed next build. Never invent a test count.

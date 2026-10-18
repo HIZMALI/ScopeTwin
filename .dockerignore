@@ -1,0 +1,15 @@
+.git
+.env*
+node_modules
+vendor
+storage
+bootstrap/cache/*.php
+public/build
+public/hot
+public/storage
+tests
+test-results
+playwright-report
+docs
+*.sqlite*
+auth.json

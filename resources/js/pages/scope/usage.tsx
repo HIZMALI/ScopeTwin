@@ -66,7 +66,7 @@ export default function Usage({
                     </div>
                 </div>
                 {agents.length ? (
-                    <div className="scope-table-scroll">
+                    <div className="scope-table-scroll" tabIndex={0} role="region" aria-label="Agent usage table">
                         <table className="scope-table">
                             <thead>
                                 <tr>

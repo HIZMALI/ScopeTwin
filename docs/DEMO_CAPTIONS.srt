@@ -1,0 +1,44 @@
+1
+00:00:00,000 --> 00:00:20,000
+Before changing an agent policy, see which recorded requests would change.
+ScopeTwin: evaluate, replay, review.
+
+2
+00:00:20,000 --> 00:00:40,000
+Published typed rules. Integer cents. Default deny.
+DENY takes precedence over REVIEW, then ALLOW.
+
+3
+00:00:40,000 --> 00:01:00,000
+Real HTTP results: $120 ALLOW, $2,400 REVIEW, unknown action DENY.
+Synthetic data. No refund executed.
+
+4
+00:01:00,000 --> 00:01:25,000
+Propose a stricter $100 refund boundary.
+Preview impact without publishing the draft.
+
+5
+00:01:25,000 --> 00:01:55,000
+Recorded / baseline / candidate.
+Three requests. Two changed labels. Two newly denied.
+
+6
+00:01:55,000 --> 00:02:15,000
+Frozen inputs and definitions keep the comparison reproducible.
+Changed labels are not a claim of money saved.
+
+7
+00:02:15,000 --> 00:02:45,000
+Human approval documents a decision while its context is valid.
+Original REVIEW preserved. No external action executed.
+
+8
+00:02:45,000 --> 00:03:00,000
+Laravel, React and PostgreSQL.
+Scoped identity, hashed keys, transactional idempotency and actual usage.
+
+9
+00:03:00,000 --> 00:03:15,000
+Pricing is proposed. No checkout or charges.
+Try the read-only synthetic tour. Execution stays with you.

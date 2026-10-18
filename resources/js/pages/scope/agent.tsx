@@ -105,7 +105,7 @@ export default function Agent({ agent }: { agent: AgentRecord }) {
                         {error}
                     </p>
                 )}
-                <div className="scope-table-scroll">
+                <div className="scope-table-scroll" tabIndex={0} role="region" aria-label="Agent keys table">
                     <table className="scope-table">
                         <thead>
                             <tr>

@@ -10,8 +10,12 @@ $app->make(Kernel::class)->bootstrap();
 if (! app()->environment('local') || config('database.connections.'.config('database.default').'.database') !== 'scopetwin') {
     throw new RuntimeException('This guard is only for the local scopetwin database.');
 }
-$path = storage_path('build02-data-guard.json');
+$build = ($argv[2] ?? 'build02') === 'build03' ? 'build03' : 'build02';
+$path = storage_path($build.'-data-guard.json');
 $tables = ['users', 'organizations', 'organization_memberships', 'agents', 'agent_api_keys', 'policies', 'policy_versions', 'action_requests', 'policy_decisions', 'audit_events'];
+if ($build === 'build03') {
+    $tables = [...$tables, 'approval_requests', 'replay_runs', 'replay_results'];
+}
 if (($argv[1] ?? '') === 'capture') {
     if (file_exists($path)) {
         throw new RuntimeException('Guard already exists; refusing to replace baseline.');

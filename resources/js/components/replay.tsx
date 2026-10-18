@@ -95,7 +95,7 @@ export function TransitionMatrix({ counts }: { counts: Record<string, number> })
                     <p>Each cell counts requests. Off-diagonal cells are decision changes.</p>
                 </div>
             </div>
-            <div className="scope-table-scroll">
+            <div className="scope-table-scroll" tabIndex={0} role="region" aria-label="Decision transition matrix">
                 <table className="scope-matrix">
                     <caption className="sr-only">Rows: current baseline. Columns: simulated candidate.</caption>
                     <thead>

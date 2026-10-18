@@ -21,7 +21,7 @@ Laravel 13 with first-party React + Inertia TypeScript starter, PostgreSQL, Vite
 - action_requests: id uuid, organization_id, agent_id, idempotency_key, action_name, amount_minor nullable, currency nullable, destination_domain nullable, normalized_request_json, created_at. Unique `(organization_id, agent_id, idempotency_key)`.
 - policy_decisions: id uuid, organization_id, agent_id, action_request_id, policy_version_id nullable, decision (ALLOW|REVIEW|DENY), reason_code, evaluated_at
 - audit_events: id uuid, organization_id, actor_type, actor_id nullable, event_type, subject_id, metadata_json (NON SENSITIVE), occurred_at
-- In later builds: approval_requests, policy_replay_runs/results, usage_counters, subscription_plans.
+- BUILD 02: approval_requests, replay_runs/replay_results with frozen manifests/inputs and three outcomes. Usage is computed from real scoped domain rows; no billing/paid entitlement tables exist.
 
 ## Typed action input
 Allowed fields: action_name (known string, <=128), resource_type optional, amount_minor optional nonnegative integer <= reasonable max, currency ISO code optional, destination_domain optional validated DNS-like hostname, resource_label optional. Reject unknown unsafe object structures in critical fields. No dynamic JavaScript eval, `eval()`, regex-from-tenant, SQL snippets, or arbitrary policy expressions.
@@ -79,6 +79,10 @@ Keep navigation minimal; non-built sections should not appear as clickable dead 
 - No claim of formal security certifications or production maturity without verification.
 
 ## Operational quality
+
+BUILD 03: `routes/public.php` is stateless and has no session/cache writes for the public landing/demo/readiness endpoints. Demo reads only a fixed reserved workspace ID plus slug, bounded frozen replay projections and a documentary approval in a deliberately disposable installation. CLI setup is off by default and refuses user DBs/existing workspaces. Main authenticated routes remain unchanged in scope and role behavior.
+
+The production image uses digest-pinned FrankenPHP/PHP 8.4 with bundled React assets, a non-root process and a separate private PostgreSQL service. No automatic startup migration/seed/key generation occurs; runtime DB DML and migration ownership are separated. Nonce CSP, safe response headers, explicit proxy/host trust, throttled registration/recovery and honest unavailable mail recovery support the release. `/up` is liveness, `/ready` tests migrated DB infrastructure. See DEPLOYMENT.md, OPERATIONS_RUNBOOK.md and BUILD03_TECHNICAL_NOTES.md for verified local evidence and external release gates.
 - `.env.example` with safe placeholders and documented local setup; no secret `.env` commits.
 - Setup script or clear README for Windows PowerShell, Docker Compose optional for local PostgreSQL.
 - Seed demo scenarios only in development/explicit demo environments.

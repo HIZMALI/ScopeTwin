@@ -1,0 +1,20 @@
+{
+    auto_https off
+    admin off
+    frankenphp
+}
+
+:8080 {
+    root * /app/public
+    header {
+        -Server
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+    }
+    route {
+        @private path_regexp private (?i)(^|/)(\.[^/]+|storage|vendor|tests|test-results|node_modules|artisan)(/|$)
+        respond @private 404
+        php_server
+    }
+    # No access log: never retain query strings or authorization headers.
+}

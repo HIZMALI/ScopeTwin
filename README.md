@@ -1,10 +1,26 @@
 # ScopeTwin
 
-Deterministic policy decisions for agent tool requests, with a versioned audit trail. Build 02 adds a real Replay Lab, policy-bound human approvals, read-only agent approval status, and actual Usage & Plans reporting to the existing Laravel monolith.
+**Know what your agent policy changes before it goes live.** Evaluate requests against explicit rules, replay a draft over recorded history, and document human review with a versioned audit trail.
+
+![ScopeTwin public landing — actual local browser capture](docs/images/landing-desktop.png)
+
+BUILD 03 adds a stateless read-only judge tour, production-mode Docker packaging, operational guardrails, accessibility repairs and a submission package to the working Laravel monolith. **Remote status: NOT DEPLOYED.** Public GitHub and video URLs have not been created or uploaded.
 
 **ScopeTwin never issues refunds, executes tools, calls an LLM, or transfers money.** Approval records a human decision only; it does not grant an execution token or change an original REVIEW result. Proposed pricing has no checkout or charges.
 
-The complete Build 02 design, routes, measured verification and manual walkthrough are in [docs/BUILD02_TECHNICAL_NOTES.md](docs/BUILD02_TECHNICAL_NOTES.md).
+Release entry points: [technical evidence](docs/BUILD03_TECHNICAL_NOTES.md), [deployment](docs/DEPLOYMENT.md), [operations runbook](docs/OPERATIONS_RUNBOOK.md), [judge walkthrough](docs/DEMO_WALKTHROUGH.md), [go-live gates](docs/GO_LIVE_CHECKLIST.md), [Devpost draft](docs/DEVPOST_SUBMISSION.md), [video storyboard](docs/DEMO_VIDEO_SCRIPT.md). Build 02's detailed domain design remains in [its technical notes](docs/BUILD02_TECHNICAL_NOTES.md).
+
+## Account-free judge tour
+
+```powershell
+./scripts/rehearse-production.ps1
+```
+
+Open [the isolated local demo](http://127.0.0.1:18733/demo). It reads **persisted synthetic artifacts** created by the real evaluation/replay/approval services in a new disposable PostgreSQL service/database. It has no account requirement, raw token or write controls. Three stored requests show ALLOW/REVIEW/DENY; a frozen candidate produces **2 changed / 2 newly denied**, and an APPROVED documentary review preserves the original REVIEW. Changed labels are not claimed as financial savings.
+
+![Actual stored synthetic three-way replay](docs/images/demo-desktop.png)
+
+The script preserves `.env`, APP_KEY, the original database and ports 18731/55439. New secrets stay in ignored `storage/.env.rehearsal`; the app binds loopback 18733. The default development app's `/demo` shows an honest unavailable state. Never seed `scopetwin`; demo setup requires explicit flags, disposable DB naming and an empty first installation. See [deployment safeguards](docs/DEPLOYMENT.md).
 
 ## Local setup (Windows PowerShell 7)
 
@@ -19,7 +35,7 @@ Open [the local app](http://127.0.0.1:18731/register) and register your own acco
 
 For manual setup: copy `.env.example` to `.env`, set a random `DB_PASSWORD`, run `composer install`, `php artisan key:generate`, `docker compose up -d --wait`, `php artisan migrate`, `npm ci`, `npm run build`, then start the server above. Do not regenerate `APP_KEY` on an existing installation: it invalidates agent key hashes and sessions.
 
-The database queue is configured but no worker is needed for synchronous evaluations. `MAIL_MAILER=array` intentionally does not deliver or log reset emails. Configure a mail transport before using password recovery. No production deployment is included.
+The database queue is configured but no worker is needed for synchronous evaluations. Password recovery is honestly unavailable until an actual delivery transport and `PASSWORD_RECOVERY_ENABLED=true` are configured. Array/log mailers never count as delivery. Production packaging is included; no remote deployment has occurred.
 
 For an existing Build 01 installation, keep `.env` and run `php artisan migrate --no-interaction` followed by `npm run build`. Build 02's additive migration creates only `replay_runs`, `replay_results`, and `approval_requests`; it does not reset data or backfill historical REVIEW decisions.
 
@@ -178,11 +194,58 @@ Playwright creates/migrates the separate `scopetwin_browser_test` database and o
 
 Measured counts and command outcomes are maintained in [docs/IMPLEMENTATION_LOG.md](docs/IMPLEMENTATION_LOG.md). Local test success is not a security audit or production certification.
 
-## Limits and next build
+## Security and release verification
+
+The public tour uses separate stateless React pages, fixed demo workspace scope, capped safe-field projections and no GET writes, cookies or public mutation endpoints. Private flows retain role/tenant authorization, normal CSRF and agent-key authentication. Registration and recovery are limited to 5/minute/IP; untrusted forwarded headers do not select another rate-limit identity. Production trusts only the configured APP_URL host and explicitly configured proxy addresses.
+
+Responses use private/no-store, framing denial, content-type protection and a CSP with per-request script nonces. Style inline allowances support actual React components; scripts do not allow unsafe-inline. HSTS is opt-in and only on secure production requests. Session defaults are Secure in production, HttpOnly and SameSite=Lax; only the isolated loopback HTTP rehearsal opts out of Secure. Production logging strips exception text/SQL bindings and sensitive contexts. `/up` is liveness, `/ready` checks migrated DB-backed infrastructure without exposing diagnostics.
+
+```powershell
+php artisan test --compact
+./scripts/test-postgres.ps1
+npm run test:browser
+./scripts/rehearse-production.ps1
+npm run test:release
+./scripts/scan-containers.ps1
+./scripts/test-database-image.ps1
+node scripts/security-smoke.mjs
+node scripts/load-smoke.mjs
+./scripts/restore-smoke.ps1
+npm run types:check
+npm run build
+npm run lint:check
+npm run format:check
+vendor/bin/pint --test
+composer validate --strict
+composer audit
+npm audit
+./scripts/check-secrets.ps1
+php scripts/verify-preservation.php verify build03
+```
+
+The preservation guard is for this implementation host's ignored baseline, not a portable fixture. New installations may capture their own baseline explicitly. All PostgreSQL regression rollbacks remain confined to `scopetwin_test`; browser regressions own 18732 / `scopetwin_browser_test`. Release tests use built assets and a different PostgreSQL service at 18733. Full actual counts, timestamps, container scan exceptions and noncoverage are maintained in the [release evidence](docs/BUILD03_TECHNICAL_NOTES.md). GitHub-hosted CI has not run remotely.
+
+## Component ownership
+
+| Component | Source / responsibility |
+| --- | --- |
+| Authorization / key boundary | `app/Services/OrganizationContext.php`, `AgentKeys.php`, `app/Http/Middleware/AuthenticateAgent.php` |
+| Pure typed decisions | `app/Domain/ActionSchema.php`, `ConditionSchema.php`, `PolicyEvaluator.php` |
+| Transactional live history | `app/Services/EvaluateAction.php`, `PolicySnapshots.php` |
+| Frozen replay / review | `app/Services/ReplayService.php`, `ApprovalService.php`, scoped controllers/models |
+| Public read-only projection | `routes/public.php`, `PublicDemoController.php`, `resources/js/public.tsx` |
+| Authenticated React workspace | `resources/js/pages/scope/`, `resources/js/components/scope.tsx` |
+| Production / security | `Dockerfile`, `compose.production.yaml`, `deploy/`, `SecurityHeaders.php`, `config/security.php` |
+
+## Limits and next steps
 
 - Replay is synchronous and capped at 500 historical requests; each policy manifest is capped at 1 MiB. It measures decision-effect changes, not unverified false-positive/false-negative rates. Candidate drafts are frozen and explicitly marked as drafts, never fabricated published versions.
 - Invalid pending approvals are displayed as EXPIRED/STALE on read without writes; a resolution attempt persists the terminal invalid state and returns 409. No cron is required to block them. Start a fresh evaluation with a new idempotency key when policy, time or credential context is invalid.
 - No external refund connector, Backboard/LLM integration, payment gateway, usage billing, production deployment or remote push. No action executor exists.
 - Application-level scope and snapshot checks are not a substitute for operational controls over direct database access. Immutable snapshots are enforced by application code; no database immutability trigger is installed.
-- Browser coverage is Chromium on this machine. No Firefox/WebKit or independent accessibility/security audit has been performed.
+- BUILD 03 adds Chromium/Firefox/WebKit production-mode journeys and axe checks. Windows WebKit link Tab traversal is a documented runtime limitation; programmatic skip focus and dialog behavior are checked there, with actual link Tab traversal in Chromium/Firefox. This is not an accessibility certification or independent security audit.
 - Hypothetical pricing, not validated or charged: Free sandbox; Team $79/month; Business $299/month. The usage/pricing UI is implemented; paid entitlements, quotas, billing and subscriptions are not.
+
+## License and provenance
+
+Original ScopeTwin contributions use [MIT](LICENSE), consistent with the existing Composer license declaration. The official Laravel React starter supplied the starting framework/authentication UI; all third-party code retains its upstream notices. See [third-party/provenance notes](docs/THIRD_PARTY_NOTICES.md). No paid artwork, proprietary template, real customer dataset, compliance certification or organizer endorsement is claimed. Public launch remains gated by explicit host/DNS/push/deployment permission and the security/release checklist.

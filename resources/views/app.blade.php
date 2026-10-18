@@ -8,7 +8,7 @@
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
 
-        @routes
+        @routes(null, \Illuminate\Support\Facades\Vite::cspNonce())
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         @inertiaHead

@@ -22,6 +22,7 @@ export interface ScopeShared extends Record<string, unknown> {
     auth: { user: { name: string; email: string } };
     canManage: boolean;
     pendingApprovals: number;
+    deploymentMode: string;
 }
 export interface Version {
     id: string;
@@ -65,7 +66,7 @@ export interface DecisionRecord {
 }
 
 export function ScopeLayout({ title, subtitle, action, children }: { title: string; subtitle: string; action?: ReactNode; children: ReactNode }) {
-    const { workspace, auth, pendingApprovals } = usePage<ScopeShared>().props;
+    const { workspace, auth, pendingApprovals, deploymentMode } = usePage<ScopeShared>().props;
     const path = usePage().url.split('?')[0];
     const nav = [
         { name: 'Overview', url: '/dashboard', icon: LayoutDashboard },
@@ -135,13 +136,13 @@ export function ScopeLayout({ title, subtitle, action, children }: { title: stri
                     </span>
                     <span className="scope-environment">
                         <i />
-                        Local sandbox
+                        {deploymentMode}
                     </span>
                     <button className="scope-mobile-logout" type="button" aria-label="Log out" onClick={() => router.post('/logout')}>
                         <LogOut size={16} />
                     </button>
                 </header>
-                <main id="main" className="scope-main">
+                <main id="main" className="scope-main" tabIndex={-1}>
                     <div className="scope-heading">
                         <div>
                             <p className="scope-eyebrow">AGENT GOVERNANCE</p>
@@ -152,7 +153,7 @@ export function ScopeLayout({ title, subtitle, action, children }: { title: stri
                     </div>
                     {children}
                     <footer className="scope-footer">
-                        <span>ScopeTwin / Build 02</span>
+                        <span>ScopeTwin / Build 03</span>
                         <span>Policy evaluation only. No external actions executed.</span>
                     </footer>
                 </main>
@@ -189,7 +190,7 @@ export function DecisionsTable({ rows }: { rows: DecisionRecord[] }) {
             </Empty>
         );
     return (
-        <div className="scope-table-scroll">
+        <div className="scope-table-scroll" tabIndex={0} role="region" aria-label="Decision history table">
             <table className="scope-table">
                 <thead>
                     <tr>

@@ -64,7 +64,7 @@
 .scope-outcome > code {
     font-size: 9px;
     display: block;
-    color: #8a97ac;
+    color: #536279;
     margin-top: 12px;
     overflow-wrap: anywhere;
 }
@@ -82,7 +82,7 @@
 .scope-matrix th {
     font-size: 9px;
     font-weight: 550;
-    color: #7d8ba2;
+    color: #536279;
     background: #fafbfd;
 }
 .scope-matrix th:first-child {
@@ -126,7 +126,7 @@
     padding: 18px 0;
     border-bottom: 2px solid transparent;
     white-space: nowrap;
-    color: #7f8da2;
+    color: #536279;
 }
 .scope-tabs a.active {
     border-bottom-color: #5d779e;
@@ -135,7 +135,7 @@
 }
 .scope-tabs a span {
     background: #f0f3f8;
-    color: #73849e;
+    color: #536279;
     font-size: 9px;
     min-width: 19px;
     padding: 2px 5px;
@@ -158,7 +158,7 @@
 .scope-legacy-note {
     padding-block: 22px;
     font-size: 12px;
-    color: #7f8da2;
+    color: #536279;
 }
 .scope-approval-actions {
     display: flex;
@@ -171,30 +171,30 @@
     display: block;
     overflow-wrap: anywhere;
     font-size: 10px;
-    color: #7b8ba3;
+    color: #536279;
     margin-top: 13px;
 }
 .scope-pill.pending,
 .scope-pill.stale,
 .scope-pill.changed {
-    color: #967239;
+    color: #785319;
     background: #fcf8ef;
     border-color: #f0e4cb;
 }
 .scope-pill.approved,
 .scope-pill.completed {
-    color: #477c66;
+    color: #31664c;
     background: #f1f8f4;
     border-color: #dcece3;
 }
 .scope-pill.rejected {
-    color: #b05d5d;
+    color: #98433f;
     background: #fcf3f3;
     border-color: #f0dede;
 }
 .scope-pill.expired,
 .scope-pill.unchanged {
-    color: #718099;
+    color: #536279;
     background: #f6f8fb;
     border-color: #e1e6ee;
 }
@@ -253,7 +253,7 @@
     justify-content: space-between;
     padding: 12px 24px 22px;
     font-size: 9px;
-    color: #8392a8;
+    color: #536279;
 }
 @media (max-width: 1000px) {
     .scope-three-col {

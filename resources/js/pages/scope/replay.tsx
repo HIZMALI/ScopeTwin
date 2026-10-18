@@ -143,7 +143,7 @@ export default function Replay({
                     </Button>
                 </form>
                 {results.data.length ? (
-                    <div className="scope-table-scroll">
+                    <div className="scope-table-scroll" tabIndex={0} role="region" aria-label="Three-way replay results table">
                         <table className="scope-table">
                             <thead>
                                 <tr>

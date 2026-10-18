@@ -181,7 +181,7 @@
     justify-content: space-between;
     padding: 0 38px;
     font-size: 11px;
-    color: #7c8596;
+    color: #536279;
 }
 .scope-topbar > span {
     display: flex;
@@ -221,7 +221,7 @@
     font-size: 9px !important;
     letter-spacing: 1.6px;
     font-weight: 650;
-    color: #6e7a90 !important;
+    color: #536279 !important;
     margin: 0 0 9px !important;
 }
 .scope-heading h1 {
@@ -232,7 +232,7 @@
     margin-bottom: 8px;
 }
 .scope-heading p {
-    color: #738096;
+    color: #536279;
     font-size: 12px;
     line-height: 1.6;
 }
@@ -287,7 +287,7 @@
 }
 .scope-stat small {
     font-size: 10px;
-    color: #8992a2;
+    color: #536279;
 }
 .scope-overview-grid {
     display: grid;
@@ -326,7 +326,7 @@
 }
 .scope-panel p {
     font-size: 11px;
-    color: #7f899a;
+    color: #536279;
     line-height: 1.7;
     margin-top: 5px;
 }
@@ -334,7 +334,7 @@
     border: 1px solid #e5e9ef;
     border-radius: 4px;
     font-size: 10px;
-    color: #778399;
+    color: #536279;
     padding: 6px 9px;
     white-space: nowrap;
 }
@@ -350,7 +350,7 @@
     flex-direction: column;
     align-items: center;
     font-size: 9px;
-    color: #8994a5;
+    color: #536279;
 }
 .scope-chart-track {
     height: 94px;
@@ -426,7 +426,7 @@
     background: #fbfcfe;
     padding: 11px 23px;
     font-weight: 550;
-    color: #8690a1;
+    color: #536279;
     font-size: 10px;
     white-space: nowrap;
 }
@@ -444,7 +444,7 @@
 .scope-table small {
     display: block;
     margin-top: 5px;
-    color: #8f98a7;
+    color: #536279;
     font-size: 9px;
 }
 .scope-table-title {
@@ -479,7 +479,7 @@
     line-height: 1.2;
     border-radius: 4px;
     border: 1px solid #e1e6ee;
-    color: #718099;
+    color: #536279;
     background: #f6f8fb;
     white-space: nowrap;
 }
@@ -492,20 +492,20 @@
 .scope-pill.allow,
 .scope-pill.active,
 .scope-pill.published {
-    color: #477c66;
+    color: #31664c;
     background: #f1f8f4;
     border-color: #dcece3;
 }
 .scope-pill.review,
 .scope-pill.draft {
-    color: #9c793c;
+    color: #785319;
     background: #fcf8ef;
     border-color: #f0e4cb;
 }
 .scope-pill.deny,
 .scope-pill.revoked,
 .scope-pill.disabled {
-    color: #b05d5d;
+    color: #98433f;
     background: #fcf3f3;
     border-color: #f0dede;
 }
@@ -539,7 +539,7 @@
 .scope-callout p {
     font-size: 10px;
     margin-top: 5px;
-    color: #8290a7;
+    color: #536279;
     line-height: 1.7;
 }
 .scope-callout > a {
@@ -549,7 +549,7 @@
     display: flex;
     justify-content: space-between;
     gap: 18px;
-    color: #a1a9b5;
+    color: #536279;
     font-size: 9px;
     margin-top: 34px;
     padding-top: 19px;
@@ -563,7 +563,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #8a98ad;
+    color: #536279;
 }
 .scope-empty h3 {
     font-size: 14px;
@@ -670,7 +670,7 @@
 }
 .scope-condition-heading span {
     font-size: 10px;
-    color: #8693a6;
+    color: #536279;
 }
 .scope-condition {
     display: grid;
@@ -694,7 +694,7 @@
 }
 .scope-remove {
     height: 37px;
-    color: #a1adbc;
+    color: #536279;
     display: grid;
     place-items: center;
     cursor: pointer;
@@ -715,7 +715,7 @@
 }
 .scope-form-actions span {
     font-size: 10px;
-    color: #8b96a8;
+    color: #536279;
 }
 .scope-form > button {
     align-self: flex-start;
@@ -726,7 +726,7 @@
     gap: 8px;
     margin: 18px 0;
     font-size: 11px;
-    color: #7c879b;
+    color: #536279;
 }
 .scope-version {
     padding: 16px 0;
@@ -749,7 +749,7 @@
 }
 .scope-version small {
     font-size: 9px;
-    color: #929bad;
+    color: #536279;
 }
 .scope-rule-order {
     display: flex;
@@ -757,7 +757,7 @@
     gap: 12px;
     padding: 14px 0 24px;
     font-size: 11px;
-    color: #8a95a7;
+    color: #536279;
     flex-wrap: wrap;
 }
 .scope-rule-order strong {
@@ -782,7 +782,7 @@
     margin-left: auto;
     padding-bottom: 10px;
     font-size: 11px;
-    color: #8b97aa;
+    color: #536279;
 }
 .scope-filters button {
     font-size: 11px;
@@ -795,7 +795,7 @@
     justify-content: space-between;
     border-top: 1px solid #edf0f5;
     font-size: 10px;
-    color: #8491a6;
+    color: #536279;
 }
 .scope-pagination > div {
     display: flex;
@@ -886,7 +886,7 @@
     line-height: 1.7;
 }
 .scope-details dt {
-    color: #8d98a9;
+    color: #536279;
 }
 .scope-details dd {
     color: #52617a;
@@ -898,7 +898,7 @@
     padding: 13px;
     border-radius: 5px;
     font-size: 11px;
-    color: #998151;
+    color: #536279;
     line-height: 1.7;
     margin-top: 22px;
 }

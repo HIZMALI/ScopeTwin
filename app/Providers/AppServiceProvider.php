@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Logging\RedactSecrets;
 use App\Services\OrganizationContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
@@ -22,6 +23,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        foreach (config('logging.channels') as $name => $channel) {
+            config(["logging.channels.$name.tap" => [...($channel['tap'] ?? []), RedactSecrets::class]]);
+        }
+        RateLimiter::for('registration', fn ($request) => Limit::perMinute(5)->by($request->ip()));
+        RateLimiter::for('password-recovery', fn ($request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('replays', function ($request) {
             $org = OrganizationContext::id();
 

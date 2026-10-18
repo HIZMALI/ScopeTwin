@@ -164,3 +164,35 @@ Visually inspected actual replay desktop/mobile and approval desktop/mobile imag
 - Existing fixed first-membership workspace model and unconfigured mail delivery remain. The old broader roadmap's public landing/judge demo and optional advisory AI adapter are future work, not claimed as delivered.
 - Verified changes were saved in one local feature-branch commit, `Implement ScopeTwin Build 02 replay and approvals`. The working tree was confirmed clean and `main` remained at `bf3f0eb`; no remote or push/deploy was used. Full technical notes and manual walkthrough: `docs/BUILD02_TECHNICAL_NOTES.md`.
 - Final staging check: 53 changed/added paths. No original Build 01 test was modified. The default Git whitespace check reports only the preserved user prompt's intentional Markdown two-space hard breaks; the staged source check excluding that original input passes. The input's SHA-256 is unchanged. Secret-pattern scan matched only the existing setup script's password-generation code, not a literal generated secret. Runtime `.env`, data guards/logs, screenshots, generated assets and databases are ignored.
+
+# BUILD 03 — 2026-10-18
+
+Started from the verified BUILD 02 tip `e495b78` on the explicitly requested local `feat/build-03-launch` branch. The two user-provided BUILD 03 instruction files were read completely and preserved. No push, remote creation, deployment, purchase, DNS change, account signup or paid API call occurred.
+
+Implemented production security/configuration guards, script-nonce CSP and response protection, explicit proxy/host trust, registration/recovery throttles, honest unavailable mail recovery, stateless landing/read-only judge tour and DB-backed readiness. Demo CLI setup is opt-in/idempotent and refuses user databases/existing non-demo workspaces; all shown artifacts are persisted through the real evaluator, replay and documentary approval services. No executor was added.
+
+Packaged locked production assets and backend with a digest-pinned, non-root FrankenPHP/PHP 8.4.26 image, explicit migration/seed/key safeguards, private PostgreSQL 18 service, persistent volumes and a DML-only runtime role. The migration-owner password is absent from the web process. New scripts reproduce the isolated loopback 18733 rehearsal, runtime/security probes, scale/load checks, safe screenshots, container scanning and disposable backup/restore. Existing development Compose and 18731/55439 remained in service.
+
+Actual failures drove repairs: Inertia navigation to a stateless landing after logout; Apache bearer forwarding in the early package; brand accessible-name mismatch; low-contrast existing text; non-focusable horizontal tables. Container scans exposed Debian/libxml2 findings, so the final server moved to Alpine. The stock FrankenPHP binary's HIGH x/net issue was repaired to v0.60.0 using the matching official builder. PostgreSQL's old Go-based privilege-drop helper was replaced with `su-exec`; fresh initialization and existing disposable data both work. No advisory was suppressed. Windows WebKit does not traverse links with Tab/Alt+Tab here; programmatic skip focus is checked there and real link Tab traversal is covered in Chromium/Firefox.
+
+Actual evidence:
+
+| Command/check | Observed result |
+| --- | --- |
+| Baseline SQLite | 126 / 924 PASS |
+| Final SQLite | **142 tests / 1031 assertions**, 10.18 s PASS |
+| Final PostgreSQL regression | **142 tests / 1031 assertions**, 24.10 s PASS |
+| Disposable migrations/concurrency | Two old migrations rollback/reapply PASS; identical/conflicting API requests, REVIEW retry, approve/reject and policy-change race PASS |
+| Unchanged Chromium regression | **3 specs PASS**, about one minute; no original test weakened |
+| Final isolated production browser suite | **6 scenarios PASS**, 58.2 s; Chromium/Firefox/WebKit, 1440/390px, full HTTP workflow and 48 axe page audits with 0 violations in tested scope |
+| Runtime/security | Non-root/debug-off/built assets/no embedded .env/high DB privilege absent PASS; unsafe debug and malformed key rejected; private paths404/forgedHost400/CSRF419/demoCookie0 |
+| Scale | 10,000 fixture decisions; 500-item replay **7 SELECT / 390.99 ms**, no changes; organization/time index used |
+| Modest HTTP load | 40 requests / concurrency4 / **0 errors**, p50 32.70ms / p95 42.81ms / max63.17ms (local, not an SLA) |
+| Backup/restore | New disposable target, **13 domain tables counts/hashes identical** |
+| Container security | Final app **0 HIGH/CRITICAL** at 18:00:46Z; final DB **0 HIGH/CRITICAL** at 18:01:14Z; Trivy, no CVE ignore/suppression |
+| Frontend/PHP checks | TypeScript/build/ESLint/Prettier/Pint PASS; strict Composer valid; Composer advisory0 / npm vulnerability0 |
+| Preservation | Both hash guards: **.env + all 183 original domain rows unchanged**; original app /up200, original loopback ports retained |
+
+README, product/architecture/test contracts, full Turkish BUILD03_TECHNICAL_NOTES, deployment/runbook, go-live checklist, English Devpost/video storyboard/SRT and four actual anonymous screenshots are included. Safe output lives in ignored `storage/build03-*`; the sanitized evidence summary is committed. No new migration was necessary, and no DDL/DML/seed/reset/rollback ran on the user's database.
+
+P0 implementation is complete and locally verified. Remote HTTPS/proxy/HSTS/certificate renewal, SMTP delivery, public GitHub/CI, organizer account eligibility/Discord/credits, actual MP4/upload and Devpost submission remain external gates. AI/Backboard is deferred and no real call was claimed. Direct DB owners remain privileged; RLS/immutable DB triggers, independent penetration test/certifications, enforced billing/quotas and production capacity/RPO/RTO guarantees are not delivered. Full paths/evidence/limitations are in BUILD03_TECHNICAL_NOTES.md and GO_LIVE_CHECKLIST.md.

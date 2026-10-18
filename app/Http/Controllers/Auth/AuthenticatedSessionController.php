@@ -46,6 +46,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        // Inertia needs an Inertia page after logout. Ordinary HTTP keeps its original redirect.
+        return $request->header('X-Inertia') ? redirect()->route('login') : redirect('/');
     }
 }

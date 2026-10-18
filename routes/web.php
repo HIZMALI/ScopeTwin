@@ -8,10 +8,6 @@ use App\Http\Controllers\UsageController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return redirect()->route(auth()->check() ? 'dashboard' : 'login');
-})->name('home');
-
 $uuid = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
 Route::middleware(['auth'])->where(['id' => $uuid, 'keyId' => $uuid, 'resultId' => $uuid])->group(function () {
     Route::get('replays', [ReplayController::class, 'index'])->name('replays.index');

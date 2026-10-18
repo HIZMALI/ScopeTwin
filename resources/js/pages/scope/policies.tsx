@@ -47,7 +47,7 @@ export default function Policies({ policies }: { policies: PolicyRecord[] }) {
                 {!policies.length ? (
                     <Empty title="Define your first boundary">Create and publish a typed policy to allow or flag specific agent actions.</Empty>
                 ) : (
-                    <div className="scope-table-scroll">
+                    <div className="scope-table-scroll" tabIndex={0} role="region" aria-label="Policies table">
                         <table className="scope-table">
                             <thead>
                                 <tr>

@@ -69,7 +69,7 @@ export default function Agents({ agents }: { agents: AgentRecord[] }) {
                 {!agents.length ? (
                     <Empty title="No agents connected">Add your first agent to receive an API key and start evaluating requests.</Empty>
                 ) : (
-                    <div className="scope-table-scroll">
+                    <div className="scope-table-scroll" tabIndex={0} role="region" aria-label="Agents table">
                         <table className="scope-table">
                             <thead>
                                 <tr>

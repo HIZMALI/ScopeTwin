@@ -45,6 +45,7 @@ class HandleInertiaRequests extends Middleware
         return array_merge(parent::share($request), [
             ...parent::share($request),
             'name' => config('app.name'),
+            'deploymentMode' => app()->isProduction() ? 'Production mode' : 'Local sandbox',
             'workspace' => $membership ? Organization::findOrFail($membership->organization_id)->only(['id', 'name']) : null,
             'canManage' => $membership && in_array($membership->role, ['OWNER', 'ADMIN'], true),
             'pendingApprovals' => fn () => $membership ? ApprovalService::pendingQuery($membership->organization_id,

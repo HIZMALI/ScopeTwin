@@ -19,6 +19,7 @@ class PasswordResetLinkController extends Controller
     {
         return Inertia::render('auth/forgot-password', [
             'status' => $request->session()->get('status'),
+            'available' => $this->available(),
         ]);
     }
 
@@ -29,6 +30,7 @@ class PasswordResetLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($this->available(), 503, 'Password recovery is unavailable until mail delivery is configured.');
         $request->validate([
             'email' => 'required|email',
         ]);
@@ -38,5 +40,11 @@ class PasswordResetLinkController extends Controller
         );
 
         return back()->with('status', __('A reset link will be sent if the account exists.'));
+    }
+
+    private function available(): bool
+    {
+        // Tests use Notification::fake; production must have an explicitly enabled delivery transport.
+        return app()->environment('testing') || (config('security.password_recovery') && in_array(config('mail.default'), ['smtp', 'ses', 'postmark', 'resend'], true));
     }
 }
