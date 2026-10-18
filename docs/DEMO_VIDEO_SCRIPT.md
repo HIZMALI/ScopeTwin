@@ -16,6 +16,8 @@ Status: **storyboard and captions draft; no completed MP4/public video claimed**
 
 ## Safe capture procedure
 
+BUILD 03.6: **Backboard live call: NOT TESTED**. Do not add a fabricated AI result to this video. The optional source adapter now requires explicit dedicated assistant binding. Catalog GET success and mock fixtures are engineering evidence only. A recorded live explanation requires a separately authorized successful synthetic generation and safe capture without keys or assistant/thread identifiers. The deterministic walkthrough above remains provider-independent.
+
 1. Run the rehearsal and full browser tests. Use a new synthetic workspace and generated in-memory password. Never record an existing user account or database.
 2. Create/save the agent key **before starting screen capture**; keep it in a private process variable. Do not put it in a terminal command, source file, screenshot or video. Use `scripts/demo-api.ps1` with a hidden prompt for live requests; only capture the sanitized response. Do not show environment files, browser storage, session cookies, network Authorization headers or devtools containing credentials.
 3. Perform the actual UI/API actions in the table. Screen recording must capture those actions, not simulated cursor animation. Keep output labels and timing consistent with the real state. Use 1440×1000 or 1920×1080 desktop recording; use the verified mobile screenshot only as an explicitly separate view.

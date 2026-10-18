@@ -18,17 +18,18 @@ $app->make(Kernel::class)->bootstrap();
 if (config('database.default') !== 'pgsql' || ! str_ends_with(config('database.connections.pgsql.database'), '_test')) {
     throw new RuntimeException('Disposable PostgreSQL *_test database required.');
 }
-config(['backboard.enabled' => true, 'backboard.api_key' => Str::random(48), 'backboard.llm_provider' => 'mock-provider', 'backboard.model_name' => 'mock-json-model']);
+$assistant = getenv('SCOPETWIN_MOCK_ASSISTANT_ID') ?: (string) Str::uuid();
+config(['backboard.enabled' => true, 'backboard.api_key' => Str::random(48), 'backboard.assistant_id' => $assistant, 'backboard.llm_provider' => 'mock-provider', 'backboard.model_name' => 'mock-json-model']);
 Http::preventStrayRequests();
 if (($argv[1] ?? '') === 'worker') {
-    Http::fake(function ($request) use ($argv) {
+    Http::fake(function ($request) use ($argv, $assistant) {
         if ($request->method() === 'DELETE') {
             return Http::response('', 204);
         }
         file_put_contents($argv[4], "POST\n", FILE_APPEND | LOCK_EX);
         usleep(300000);
 
-        return Http::response(['status' => 'COMPLETED', 'thread_id' => (string) Str::uuid(), 'content' => json_encode([
+        return Http::response(['status' => 'COMPLETED', 'thread_id' => (string) Str::uuid(), 'assistant_id' => $assistant, 'content' => json_encode([
             'explanation' => 'This is a simulated historical comparison. Human review can inspect the frozen differences.', 'questions' => []])]);
     });
     echo "ready\n";
@@ -47,12 +48,12 @@ try {
         'candidate_policy_name' => 'Synthetic concurrency fixture', 'candidate_source' => 'DRAFT', 'baseline_manifest' => [], 'baseline_fingerprint' => hash('sha256', 'baseline'),
         'candidate_snapshot' => [], 'candidate_fingerprint' => hash('sha256', 'candidate'), 'sample_manifest' => [], 'filters' => [], 'sample_count' => 0,
         'summary' => ['changed' => 0, 'newly_denied' => 0, 'newly_reviewed' => 0, 'transitions' => []], 'status' => 'COMPLETED', 'completed_at' => now()]);
-    $race = function (array $pairs) use ($org, $counter): array {
+    $race = function (array $pairs) use ($org, $counter, $assistant): array {
         DB::beginTransaction();
         Organization::whereKey($org)->lockForUpdate()->firstOrFail();
         $processes = [];
         foreach ($pairs as [$user, $replay]) {
-            $process = new Process([PHP_BINARY, __FILE__, 'worker', (string) $user, $replay, $counter], base_path());
+            $process = new Process([PHP_BINARY, __FILE__, 'worker', (string) $user, $replay, $counter], base_path(), ['SCOPETWIN_MOCK_ASSISTANT_ID' => $assistant]);
             $process->setTimeout(30)->start();
             $processes[] = $process;
         }

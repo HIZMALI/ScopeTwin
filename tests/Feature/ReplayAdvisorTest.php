@@ -24,6 +24,8 @@ class ReplayAdvisorTest extends TestCase
 
     private string $key;
 
+    private string $assistant;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -33,7 +35,9 @@ class ReplayAdvisorTest extends TestCase
         $this->owner = User::firstOrFail();
         $this->run = ReplayRun::firstOrFail();
         $this->key = Str::random(48);
+        $this->assistant = (string) Str::uuid();
         config(['backboard.enabled' => true, 'backboard.api_key' => $this->key,
+            'backboard.assistant_id' => $this->assistant,
             'backboard.llm_provider' => 'mock-provider', 'backboard.model_name' => 'mock-json-model']);
     }
 
@@ -57,7 +61,7 @@ class ReplayAdvisorTest extends TestCase
 
     private function fake(?array $output = null, int $cleanup = 204): void
     {
-        Http::fake(['*/threads/messages' => Http::response(['status' => 'COMPLETED', 'thread_id' => (string) Str::uuid(), 'content' => json_encode($output ?? $this->valid())]),
+        Http::fake(['*/threads/messages' => fn () => Http::response(['status' => 'COMPLETED', 'thread_id' => (string) Str::uuid(), 'assistant_id' => $this->assistant, 'content' => json_encode($output ?? $this->valid())]),
             '*/threads/*' => Http::response('', $cleanup)]);
     }
 
@@ -86,19 +90,21 @@ class ReplayAdvisorTest extends TestCase
                 $this->assertSame($value, $request[$key]);
             }
             $this->assertFalse(isset($request['thread_id']));
-            $this->assertFalse(isset($request['assistant_id']));
+            $this->assertTrue(hash_equals($this->assistant, $request['assistant_id']));
 
             return true;
         });
         $this->assertDatabaseCount('advisor_explanations', 1);
         $this->assertSame(2, (int) DB::table('advisor_quotas')->sum('calls'));
         $page = $this->get('/replays/'.$this->run->id)->assertOk();
-        $page->assertDontSee($this->key, false)->assertDontSee('mock-json-model');
+        $page->assertDontSee($this->key, false)->assertDontSee('mock-json-model')->assertDontSee($this->assistant, false);
     }
 
     public static function unavailableConfigurations(): array
     {
-        return [['enabled', false, 'disabled'], ['api_key', '', 'not_configured'], ['model_name', '', 'not_configured'], ['llm_provider', '', 'not_configured']];
+        return [['enabled', false, 'disabled'], ['api_key', '', 'not_configured'], ['model_name', '', 'not_configured'], ['llm_provider', '', 'not_configured'],
+            ['assistant_id', '', 'not_configured'], ['assistant_id', 'not-a-uuid', 'not_configured'], ['assistant_id', ['unexpected'], 'not_configured'],
+            ['assistant_id', 'https://untrusted.example', 'not_configured']];
     }
 
     #[DataProvider('unavailableConfigurations')]
@@ -113,7 +119,7 @@ class ReplayAdvisorTest extends TestCase
 
     public static function failures(): array
     {
-        return [[401], [402], [429], [500], ['timeout'], ['json'], ['long'], ['html'], ['digits'], ['tools'], ['thread'], ['outer'], ['key'], ['questions']];
+        return [[401], [402], [429], [500], ['timeout'], ['json'], ['long'], ['html'], ['digits'], ['tools'], ['thread'], ['outer'], ['key'], ['questions'], ['assistant_missing'], ['assistant_mismatch']];
     }
 
     #[DataProvider('failures')]
@@ -136,12 +142,18 @@ class ReplayAdvisorTest extends TestCase
         if ($failure === 'questions') {
             $output['questions'] = ['a', 'b', 'c'];
         }
-        $outer = ['status' => 'COMPLETED', 'thread_id' => (string) Str::uuid(), 'content' => $failure === 'json' ? '{bad' : json_encode($output)];
+        $outer = ['status' => 'COMPLETED', 'thread_id' => (string) Str::uuid(), 'assistant_id' => $this->assistant, 'content' => $failure === 'json' ? '{bad' : json_encode($output)];
         if ($failure === 'tools') {
             $outer['tool_calls'] = [['name' => 'unrequested']];
         }
         if ($failure === 'thread') {
             unset($outer['thread_id']);
+        }
+        if ($failure === 'assistant_missing') {
+            unset($outer['assistant_id']);
+        }
+        if ($failure === 'assistant_mismatch') {
+            $outer['assistant_id'] = (string) Str::uuid();
         }
         Http::fake(function ($request) use ($failure, $outer) {
             if ($request->method() === 'DELETE') {
@@ -270,5 +282,51 @@ class ReplayAdvisorTest extends TestCase
         $this->assertDatabaseCount('advisor_explanations', 0);
         $this->assertDatabaseCount('advisor_quotas', 0);
         Http::assertNothingSent();
+    }
+
+    public function test_bound_assistant_is_private_in_responses_cache_and_finite_logs(): void
+    {
+        Log::spy();
+        $this->fake();
+        $before = $this->state();
+        $response = $this->actingAs($this->owner)->postJson($this->url())->assertOk();
+        $privatePage = $this->get('/replays/'.$this->run->id)->assertOk();
+        $publicPage = $this->get('/demo/replay')->assertOk();
+        $surfaces = [$response->getContent(), $privatePage->getContent(), $publicPage->getContent(), DB::table('advisor_explanations')->value('result_json')];
+        foreach ($surfaces as $surface) {
+            foreach ([$this->assistant, $this->key] as $private) {
+                $this->assertTrue(! str_contains($surface, $private), 'A private configured value must never be exposed.');
+            }
+        }
+        Log::shouldHaveReceived('warning')->once()->withArgs(function ($message, $context) {
+            return $message === 'Replay advisor' && array_keys($context) === ['advisor_status', 'elapsed_ms']
+                && $context['advisor_status'] === 'completed' && is_int($context['elapsed_ms']);
+        });
+        $this->assertSame($before, $this->state());
+    }
+
+    public function test_assistant_change_invalidates_cached_advice_and_cannot_bypass_quota(): void
+    {
+        $this->fake();
+        $this->actingAs($this->owner)->postJson($this->url())->assertOk();
+        config(['backboard.assistant_id' => strtoupper($this->assistant)]);
+        $this->postJson($this->url())->assertOk()->assertJsonPath('cached', true);
+        $this->assistant = (string) Str::uuid();
+        config(['backboard.assistant_id' => $this->assistant]);
+        $this->postJson($this->url())->assertStatus(429);
+        Http::assertSentCount(2);
+        $this->travel(61)->seconds();
+        $this->postJson($this->url())->assertOk()->assertJsonPath('cached', false);
+        $this->assertDatabaseCount('advisor_explanations', 2);
+    }
+
+    public function test_removing_binding_blocks_even_cached_advice_without_an_upstream_call(): void
+    {
+        $this->fake();
+        $this->actingAs($this->owner)->postJson($this->url())->assertOk();
+        config(['backboard.assistant_id' => '']);
+        $this->postJson($this->url())->assertStatus(503)->assertJsonPath('status', 'not_configured');
+        Http::assertSentCount(2);
+        $this->assertSame(2, (int) DB::table('advisor_quotas')->sum('calls'));
     }
 }

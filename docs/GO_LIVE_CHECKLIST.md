@@ -23,6 +23,8 @@
 
 ## External launch blockers — do not check without real evidence
 
+BUILD 03.6: explicit `BACKBOARD_ASSISTANT_ID` is now mandatory in source; missing/invalid binding sends zero upstream requests. **Backboard live call: NOT TESTED.** Catalog GET verified candidate records/advertised prices only. Assistant inventory/isolation, local ACL/CA changes and private runtime configuration remain operator gates. No existing service was rebuilt/recreated or enabled. See BUILD03_6_CONNECTIVITY_REPORT.md for actual regression coverage and the reviewed approval plan; historical BUILD 03/03.5 results are not fresh BUILD 03.6 runtime verification.
+
 BUILD 03.5 local addendum: 169 PHP tests / 1291 assertions on both SQLite/PostgreSQL, three advisor concurrency races, four Chromium regression scenarios and six three-browser release scenarios passed. Separate 18734 package, two additive advisor tables, quota/cache/cleanup and disabled fallback are implemented. Existing 183 PostgreSQL domain rows and .env are unchanged. Provider remains LIVE_NOT_TESTED/MODEL_NOT_SELECTED. Exact fresh evidence and initial local-environment limitation are in BUILD03_5_BACKBOARD_REPORT.md; BUILD 03 rows above describe the historical baseline.
 
 - [ ] **NOT TESTED / NOT AUTHORIZED:** select/approve hosting, operating costs, domain and DNS changes. No host was bought or exposed remotely.

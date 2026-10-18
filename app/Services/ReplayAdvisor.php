@@ -19,7 +19,7 @@ final class ReplayAdvisor
 {
     private const URL = 'https://app.backboard.io/api/threads';
 
-    private const VERSION = 'aggregate-advisor-v1';
+    private const VERSION = 'aggregate-advisor-v2-bound-assistant';
 
     private const PROMPT = 'Explain this simulated historical policy replay in two or three short English sentences. Return only a JSON object with explanation (string) and questions (array of at most two short human review questions). Use no numerals, identifiers, personal data, URLs, HTML or markdown. Counts are displayed separately by the deterministic engine. Do not infer causes, prevented losses, savings or legal/compliance guarantees. Do not recommend authorization decisions, policy edits, approvals, rejections or transactions. Do not use tools. Describe uncertainty and suggest questions for a human reviewer only. The simulation does not execute actions.';
 
@@ -33,6 +33,10 @@ final class ReplayAdvisor
             if (! is_string($value) || trim($value) === '' || strlen($value) > 256 || preg_match('/[\x00-\x20\x7f]/', $value)) {
                 return 'not_configured';
             }
+        }
+        $assistant = config('backboard.assistant_id');
+        if (! is_string($assistant) || ! Str::isUuid($assistant)) {
+            return 'not_configured';
         }
 
         return 'ready';
@@ -101,7 +105,7 @@ final class ReplayAdvisor
             return $base + ['status' => 'unavailable'];
         }
         $cacheKey = hash('sha256', json_encode([$summary, $run->baseline_fingerprint, $run->candidate_fingerprint,
-            $run->sample_manifest, config('backboard.llm_provider'), config('backboard.model_name'), self::VERSION], JSON_THROW_ON_ERROR));
+            $run->sample_manifest, config('backboard.llm_provider'), config('backboard.model_name'), strtolower(config('backboard.assistant_id')), self::VERSION], JSON_THROW_ON_ERROR));
         $reservation = $this->reserve($actor, $run->organization_id, $cacheKey);
         if ($reservation['status'] !== 'reserved') {
             return array_replace($base, $reservation);
@@ -115,6 +119,7 @@ final class ReplayAdvisor
         try {
             $response = $this->client()->post(self::URL.'/messages', [
                 'content' => json_encode($summary, JSON_THROW_ON_ERROR), 'system_prompt' => self::PROMPT,
+                'assistant_id' => config('backboard.assistant_id'),
                 'llm_provider' => config('backboard.llm_provider'), 'model_name' => config('backboard.model_name'),
                 'memory' => 'off', 'web_search' => 'off', 'tools' => [], 'stream' => false, 'json_output' => true,
                 'image_generation' => 'off', 'video_generation' => 'off',
@@ -129,7 +134,9 @@ final class ReplayAdvisor
                 if (is_string($candidate) && Str::isUuid($candidate)) {
                     $thread = $candidate;
                 }
-                if ($response->successful() && $thread && ($outer['status'] ?? '') === 'COMPLETED' && empty($outer['tool_calls'])) {
+                $assistant = $outer['assistant_id'] ?? null;
+                $bound = is_string($assistant) && hash_equals(strtolower(config('backboard.assistant_id')), strtolower($assistant));
+                if ($response->successful() && $thread && $bound && ($outer['status'] ?? '') === 'COMPLETED' && empty($outer['tool_calls'])) {
                     $result = $this->validateOutput($outer['content'] ?? null);
                     $class = $result ? 'completed' : 'invalid_response';
                 }

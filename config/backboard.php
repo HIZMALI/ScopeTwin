@@ -3,6 +3,8 @@
 return [
     'enabled' => (bool) env('BACKBOARD_ENABLED', false),
     'api_key' => env('BACKBOARD_API_KEY', ''),
+    // Dedicated operator-approved assistant. Never fall back to the account default.
+    'assistant_id' => env('BACKBOARD_ASSISTANT_ID', ''),
     // No guessed model: operator must verify availability, JSON support and prices privately.
     'llm_provider' => env('BACKBOARD_LLM_PROVIDER', ''),
     'model_name' => env('BACKBOARD_MODEL_NAME', ''),
