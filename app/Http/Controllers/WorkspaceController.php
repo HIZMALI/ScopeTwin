@@ -45,7 +45,7 @@ class WorkspaceController extends Controller
 
     public function decision(string $id)
     {
-        return Inertia::render('scope/decision', ['decision' => PolicyDecision::forOrganization(Context::id())->with(['agent:id,name', 'actionRequest', 'policyVersion'])->findOrFail($id)]);
+        return Inertia::render('scope/decision', ['decision' => PolicyDecision::forOrganization(Context::id())->with(['agent:id,name', 'actionRequest', 'policyVersion', 'approval:id,policy_decision_id,status'])->findOrFail($id)]);
     }
 
     public function audit(string $id)

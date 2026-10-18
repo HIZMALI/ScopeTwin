@@ -6,6 +6,7 @@ use App\Models\Organization;
 use App\Models\Policy;
 use App\Models\PolicyVersion;
 use App\Services\Audit;
+use App\Services\PolicySnapshots;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -35,6 +36,7 @@ class SeedDemoPolicies extends Command
             ['Block unapproved export', 'DENY', 'EXPORT_DOMAIN_BLOCKED', ['action_name' => ['eq' => 'data.export'], 'destination_domain' => ['in' => ['blocked.example', 'untrusted.example']]]],
         ];
         DB::transaction(function () use ($org, $rules) {
+            PolicySnapshots::lock($org->id, true);
             foreach ($rules as [$name, $effect, $reason, $conditions]) {
                 $policy = Policy::firstOrCreate(['organization_id' => $org->id, 'name' => $name]);
                 if ($policy->published_version_id) {

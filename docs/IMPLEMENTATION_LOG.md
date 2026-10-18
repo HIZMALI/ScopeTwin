@@ -84,3 +84,83 @@ Build 02 should persist explicit replay runs/results scoped to organization, com
 ## Repository handoff
 
 Build 01 sources were saved in a local commit on `main` with message `Implement ScopeTwin Build 01 policy governance monolith` (209 files, including the starter and preserved project instructions). `.env`, database files, screenshots, runtime logs, raw HTTP verification output, dependency directories and generated assets are ignored. A staged-content scan found no literal generated agent keys, application keys or database passwords; its setup-script match was the password-generation code, not a stored credential. `git diff --cached --check` passed. No remote is configured and no push/deploy command was run. The local application was verified at `http://127.0.0.1:18731`; an app browser tab was requested (the UI tool returned `queued`).
+
+---
+
+# Build 02 — Replay Lab, approvals and usage
+
+Date: 2026-10-18 (Europe/Istanbul). User explicitly requested the local feature branch for this build, overriding the usual main-only preference. Created `feat/build-02-replay-approvals` from `bf3f0eb`. Starting tree had one untracked user file, `docs/BUILD02_CODEX_PROMPT.md`; it was read, preserved byte-for-byte and retained for the commit. No unrelated user edits were overwritten.
+
+Read the Build 02 prompt, original instructions, product/architecture/acceptance/Build 02 planning documents, README, previous log, actual services/models/migrations/controllers/routes/UI/tests. Reran the baseline: **89 tests / 537 assertions passed** before implementing changes.
+
+## Delivered implementation
+
+- Additive migration `2026_10_18_000002_create_replay_and_approval_tables.php`: scoped `replay_runs`, `replay_results`, `approval_requests`; UUIDs, foreign keys, unique run/request and decision/approval relationships, organization/time/status/expiry indexes.
+- `SnapshotManifest` canonical validation/fingerprints and bounded metadata. `ReplayComparison` adapts a frozen draft for the existing `PolicyEvaluator`, preserving precedence/default deny and emitting explicit draft references without invented published UUIDs.
+- `ReplayService`: identity-derived workspace/role, frozen active published baseline plus validated draft, 100-default/500-max historical sample, optional scoped agent/action/UTC date filters, stored sample IDs/input hashes, three outcomes, immutable report snapshots and actual transition counts. Writes only replay rows and sanitized replay audit at domain level; no live operations or approvals are emitted.
+- Policy mutations and snapshot captures coordinate on organization row locks. Draft publication is separate from replay; old report definitions/results remain unchanged after edits/publication/disablement.
+- `ApprovalService`: exactly one PENDING approval on a new REVIEW, within the evaluation transaction. Originating key, full policy manifest/fingerprint, safe summary and 24-hour expiry are captured. Idempotent retries preserve exact Build 01 API responses and create no duplicate approval, including retries of historical legacy REVIEW records.
+- Authorized atomic approve/reject with agent/key/org-policy/approval locks, single terminal transition, finite audit reasons, reviewer/time, 409 conflicts. Expiry, changed published membership/definitions, disabled agent and revoked originating key block approval; draft-only changes do not. Invalid pending status is derived on GET and finalized on mutation, preventing approval without a cron job and keeping lookups read-only.
+- Scoped originating-agent read-only status endpoint, with no execution capability and no cross-agent access. Legacy Build 01 reviews are not backfilled and are labelled reevaluation required.
+- React UI: Replay Lab history/form, real Preview impact actions, report with three-way outcomes/transition matrix/frozen definitions/filters/row detail/no-change and empty states; Approvals Pending/Resolved/Historical tabs with genuine badges, confirmation dialog, explicit no-execution feedback and safe context; Usage & Plans with actual 30-day counts and honestly proposed prices, no checkout.
+- Existing four sections and evaluation API remain functional. New navigation and desktop/mobile layout were verified. Added a read-only `lint:check` npm script.
+- Browser tests now own isolated port 18732 and `scopetwin_browser_test`; the user's port 18731 and database are preserved. Added hash-only local data-preservation guard and real PostgreSQL approval concurrency script. Updated README, planning status and `BUILD02_TECHNICAL_NOTES.md`.
+
+## Commands and actual results
+
+| Command / evidence | Measured result |
+| --- | --- |
+| Initial `php artisan test --compact` | 89 passed / 537 assertions, 4.07 s |
+| Final SQLite `php artisan test --compact` | **126 passed / 924 assertions**, 8.12 s recorded run |
+| Final `./scripts/test-postgres.ps1` | **126 passed / 924 assertions**, 24.66 s while browser suite also ran |
+| Disposable PostgreSQL migration rollback/reapply | Both Build 01 domain and Build 02 migrations succeeded |
+| Original concurrency script | 4 identical requests => one saved decision; different payload race => 200 + 409; correct row/audit counts |
+| New REVIEW concurrency | 4 simultaneous duplicate REVIEW requests => one decision and one approval |
+| New approve/reject concurrency | One 200 + one 409, one terminal transition audit, immutable REVIEW preserved |
+| Concurrent policy mutation vs approval | STALE / 409 after changed manifest state committed |
+| `npm run test:browser` | **3 passed** (1.1 min): Build 01 regression, full Replay Lab, full Approvals workflows over HTTP/PostgreSQL |
+| `npm run types:check` / `npm run build` | Passed; Vite production assets generated |
+| ESLint | `npx eslint .` passed; reproducible via new `npm run lint:check` |
+| `npm run format:check` / `vendor/bin/pint --test` | Passed |
+| `composer validate --strict` | Valid manifest |
+| `composer audit` / `npm audit` | No Composer security advisories / 0 npm vulnerabilities |
+| `php artisan migrate --pretend` then local `migrate --no-interaction` | Reviewed additive schema; only Build 02 migration applied to app DB, 122.99 ms |
+| `php scripts/verify-preservation.php verify` | `.env` and **183 original rows** unchanged in canonical query-output hashes |
+| User prompt SHA-256 comparison | `docs/BUILD02_CODEX_PROMPT.md` unchanged |
+| Local `GET http://127.0.0.1:18731/up` | Actual HTTP 200 |
+
+New tests preserve all 89 original tests and cover three-way attribution, draft replacement/addition, unchanged unknown default deny, exact minor-unit boundaries, frozen result persistence, full before/after domain-state comparisons, no HTTP side effects, malformed/disabled/foreign drafts, empty history, 100/500 bounds, bounded SELECT counts, filters, per-user and shared-organization replay throttles, owner/admin permissions, VIEWER prohibition, foreign UUID/run/result/approval/sample attacks, per-agent lookup, transactional creation rollback, 24-hour boundary, stale policy/key/agent contexts, legacy retry behavior, terminal conflicts and real usage.
+
+## Live HTTP/browser evidence
+
+The Replay Lab journey registered a synthetic owner with a generated in-memory password, created an agent/key, published actual ALLOW/refund `<=50000` and REVIEW/refund `>50000` rules through UI, and sent three real API requests. A new unpublished DENY/refund `>10000` candidate produced:
+
+| Request | Original | Baseline | Candidate |
+| --- | --- | --- | --- |
+| USD 12000 minor units ($120) | ALLOW | ALLOW | DENY |
+| USD 240000 minor units ($2,400) | REVIEW | REVIEW | DENY |
+| unknown.action | DENY / DEFAULT_DENY | DENY / DEFAULT_DENY | DENY / DEFAULT_DENY |
+
+Exactly two changes/two newly denied. Live decisions and approval counts were unchanged, and the draft remained unpublished. The journey checked filtering, row detail, no-change/empty samples, later publication/editing with unchanged earlier reports, recorded-vs-baseline divergence and actual Usage & Plans totals.
+
+The approval journey exercised idempotent REVIEW creation, read-only agent lookup, confirm/cancel/approve/reject, preserved original REVIEW response, draft-only validity, publication-induced staleness, originating-key revocation and resolved/historical tabs. Both new specs verified unauthenticated reads return 401 and cross-site/no-CSRF-token mutation attempts return 419. Tests ran normal local web middleware, not a CSRF-exempt test server. All specs observed zero browser JavaScript page errors. Desktop viewport was 1440 px; new pages and existing core pages were checked at 390 px for document overflow.
+
+Visually inspected actual replay desktop/mobile and approval desktop/mobile images in ignored `storage/screenshots/build02-*.png`. Tokens were hidden before explicit screenshots; traces and automatic screenshots remain off. No plaintext key/password was written to source/output. Measured replay IDs/outcomes are in ignored `storage/build02-http-replay.json`.
+
+## Failures and fixes during this build
+
+- First new feature GET failed because the Vite manifest predated the newly added replay page. Ran the actual frontend build; backend tests then passed. Did not bypass rendering or Vite in tests.
+- First browser runs received Inertia 409 asset-version negotiation responses from the HTTP props helper because `X-Inertia-Version` was missing. Fixed the test helper to send the real DOM page version; no application negotiation/security behavior was weakened.
+- A filter test inspected the old table before Inertia finished rendering. Replaced the immediate row-count read with Playwright's auto-waiting `toHaveCount(2)` assertion.
+- Visual review found duplicate approval-success banners. Consolidated them and made network-error feedback close the confirmation dialog. The full browser suite passed again after this UI change.
+- Expanded checks after initial green runs to prove shared-organization replay throttles across multiple admins and to prove an idempotent retry cannot backfill a legacy REVIEW approval. Final counts are 126 / 924 on both databases.
+
+## Preservation, limitations and handoff
+
+- No reset, seed, rollback or destructive test command ran against `scopetwin`. Only the additive migration ran there. Existing APP_KEY/DB_PASSWORD, `.env`, users, policies, keys, decisions, membership, Docker service/volume and original app port are preserved. Test rollback is confined to explicitly named disposable databases.
+- No remote push, deployment, paid subscription, external account, real refund/payment, external tool invocation, LLM or Backboard integration occurred. Billing remains proposed pricing only.
+- Synchronous replay is capped at 500 and 1 MiB per policy snapshot manifest. No retention/deletion UI or background batch scheduling was added. Invalid pending states are derived on read and finalized on mutation; this intentionally does not require a cleanup cron.
+- Snapshot/data immutability and tenant authorization are application-level; direct database administrators, database RLS/triggers, production load, formal security/accessibility certification and Firefox/WebKit coverage are outside verified scope.
+- Existing fixed first-membership workspace model and unconfigured mail delivery remain. The old broader roadmap's public landing/judge demo and optional advisory AI adapter are future work, not claimed as delivered.
+- Verified changes were saved in one local feature-branch commit, `Implement ScopeTwin Build 02 replay and approvals`. The working tree was confirmed clean and `main` remained at `bf3f0eb`; no remote or push/deploy was used. Full technical notes and manual walkthrough: `docs/BUILD02_TECHNICAL_NOTES.md`.
+- Final staging check: 53 changed/added paths. No original Build 01 test was modified. The default Git whitespace check reports only the preserved user prompt's intentional Markdown two-space hard breaks; the staged source check excluding that original input passes. The input's SHA-256 is unchanged. Secret-pattern scan matched only the existing setup script's password-generation code, not a literal generated secret. Runtime `.env`, data guards/logs, screenshots, generated assets and databases are ignored.

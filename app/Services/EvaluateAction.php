@@ -29,7 +29,9 @@ final class EvaluateAction
 
                 return $this->response(PolicyDecision::where('action_request_id', $existing->id)->firstOrFail());
             }
-            $result = $this->evaluator->evaluate($action, PolicySnapshots::published($agent->organization_id));
+            PolicySnapshots::lock($agent->organization_id);
+            $manifest = PolicySnapshots::frozen($agent->organization_id);
+            $result = $this->evaluator->evaluate($action, $manifest);
             $record = ActionRequest::create([
                 'organization_id' => $agent->organization_id, 'agent_id' => $agent->id, 'idempotency_key' => $idempotencyKey,
                 'action_name' => $action['action_name'], 'amount_minor' => $action['amount_minor'] ?? null,
@@ -41,6 +43,9 @@ final class EvaluateAction
                 'action_request_id' => $record->id, 'evaluated_at' => now(),
             ]);
             $freshKey->update(['last_used_at' => now()]);
+            if ($decision->decision === 'REVIEW') {
+                ApprovalService::create($decision, $freshKey, $action, $manifest);
+            }
             Audit::record($agent->organization_id, 'action.evaluated', $decision->id, 'AGENT', $agent->id,
                 ['decision' => $result['decision'], 'reason_code' => $result['reason_code']]);
 

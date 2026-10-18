@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './scope.css';
+@import './build02.css';
 
 @plugin 'tailwindcss-animate';
 

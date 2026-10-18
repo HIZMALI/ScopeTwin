@@ -40,6 +40,8 @@ export default function PolicyForm({ policy, currencies }: { policy: PolicyRecor
     });
     const [saved, setSaved] = useState(true);
     const [publishing, setPublishing] = useState(false);
+    const [replaying, setReplaying] = useState(false);
+    const [replayError, setReplayError] = useState('');
     function update(index: number, patch: Partial<Row>) {
         setSaved(false);
         setRows(rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
@@ -257,6 +259,29 @@ export default function PolicyForm({ policy, currencies }: { policy: PolicyRecor
                             </Button>
                         )}
                         {!saved && <p>Save your changes before publishing.</p>}
+                        {canManage && (
+                            <Button
+                                className="mt-3 w-full"
+                                variant="outline"
+                                disabled={!draft || !saved || form.processing || replaying || form.data.status !== 'ACTIVE'}
+                                onClick={() => {
+                                    setReplaying(true);
+                                    setReplayError('');
+                                    router.post(
+                                        '/replays',
+                                        { draft_id: draft!.id, limit: 100 },
+                                        { onFinish: () => setReplaying(false), onError: (errors) => setReplayError(Object.values(errors).join(' ')) },
+                                    );
+                                }}
+                            >
+                                {replaying ? 'Running replay…' : 'Preview impact'}
+                            </Button>
+                        )}
+                        {replayError && (
+                            <p className="scope-error" role="alert">
+                                {replayError}
+                            </p>
+                        )}
                     </section>
                     <section className="scope-panel scope-form-panel">
                         <h2>Version history</h2>

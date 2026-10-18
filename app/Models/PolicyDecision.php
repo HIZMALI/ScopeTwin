@@ -3,9 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PolicyDecision extends ScopedModel
 {
+    public function approval(): HasOne
+    {
+        return $this->hasOne(ApprovalRequest::class);
+    }
+
     protected function casts(): array
     {
         return ['evaluated_at' => 'datetime'];

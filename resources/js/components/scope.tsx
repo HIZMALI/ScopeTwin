@@ -4,9 +4,12 @@ import {
     Activity,
     ArrowUpRight,
     Bot,
+    ChartNoAxesCombined,
     ChevronLeft,
     ChevronRight,
     CircleHelp,
+    ClipboardCheck,
+    FlaskConical,
     LayoutDashboard,
     LogOut,
     ShieldCheck,
@@ -18,6 +21,7 @@ export interface ScopeShared extends Record<string, unknown> {
     workspace: { name: string };
     auth: { user: { name: string; email: string } };
     canManage: boolean;
+    pendingApprovals: number;
 }
 export interface Version {
     id: string;
@@ -44,6 +48,7 @@ export interface AgentRecord {
     keys?: { id: string; prefix: string; revoked_at: string | null; last_used_at: string | null }[];
 }
 export interface DecisionRecord {
+    approval?: { id: string; status: string } | null;
     id: string;
     decision: string;
     reason_code: string;
@@ -60,13 +65,16 @@ export interface DecisionRecord {
 }
 
 export function ScopeLayout({ title, subtitle, action, children }: { title: string; subtitle: string; action?: ReactNode; children: ReactNode }) {
-    const { workspace, auth } = usePage<ScopeShared>().props;
+    const { workspace, auth, pendingApprovals } = usePage<ScopeShared>().props;
     const path = usePage().url.split('?')[0];
     const nav = [
         { name: 'Overview', url: '/dashboard', icon: LayoutDashboard },
         { name: 'Agents', url: '/agents', icon: Bot },
         { name: 'Policies', url: '/policies', icon: SlidersHorizontal },
         { name: 'Decisions', url: '/decisions', icon: Activity },
+        { name: 'Replay Lab', url: '/replays', icon: FlaskConical },
+        { name: 'Approvals', url: '/approvals', icon: ClipboardCheck },
+        { name: 'Usage & Plans', url: '/usage', icon: ChartNoAxesCombined },
     ];
     return (
         <div className="scope-app">
@@ -97,6 +105,7 @@ export function ScopeLayout({ title, subtitle, action, children }: { title: stri
                         >
                             <item.icon size={18} />
                             {item.name}
+                            {item.url === '/approvals' && pendingApprovals > 0 && <span className="scope-nav-count">{pendingApprovals}</span>}
                             {path.startsWith(item.url) && <span className="scope-nav-dot" />}
                         </Link>
                     ))}
@@ -143,7 +152,7 @@ export function ScopeLayout({ title, subtitle, action, children }: { title: stri
                     </div>
                     {children}
                     <footer className="scope-footer">
-                        <span>ScopeTwin / Build 01</span>
+                        <span>ScopeTwin / Build 02</span>
                         <span>Policy evaluation only. No external actions executed.</span>
                     </footer>
                 </main>
@@ -234,7 +243,7 @@ export function DecisionsTable({ rows }: { rows: DecisionRecord[] }) {
         </div>
     );
 }
-function formatAmount(minor: number, currency: string): string {
+export function formatAmount(minor: number, currency: string): string {
     const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency, currencyDisplay: 'code' });
     const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
     return formatter.format(minor / 10 ** digits);

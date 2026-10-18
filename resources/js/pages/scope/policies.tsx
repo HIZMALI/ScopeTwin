@@ -1,10 +1,13 @@
 import { Empty, Pill, PolicyRecord, ScopeLayout, ScopeShared } from '@/components/scope';
 import { Button } from '@/components/ui/button';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowUpRight, Plus } from 'lucide-react';
+import { useState } from 'react';
 
 export default function Policies({ policies }: { policies: PolicyRecord[] }) {
     const { canManage } = usePage<ScopeShared>().props;
+    const [replaying, setReplaying] = useState('');
+    const [error, setError] = useState('');
     return (
         <ScopeLayout
             title="Policies"
@@ -20,6 +23,11 @@ export default function Policies({ policies }: { policies: PolicyRecord[] }) {
                 )
             }
         >
+            {error && (
+                <p className="scope-error" role="alert">
+                    {error}
+                </p>
+            )}
             <div className="scope-rule-order">
                 <strong>Decision precedence</strong>
                 <Pill value="DENY" />
@@ -47,6 +55,7 @@ export default function Policies({ policies }: { policies: PolicyRecord[] }) {
                                     <th>Effect</th>
                                     <th>Live version</th>
                                     <th>Status</th>
+                                    <th>Draft impact</th>
                                     <th>
                                         <span className="sr-only">Open policy</span>
                                     </th>
@@ -73,6 +82,31 @@ export default function Policies({ policies }: { policies: PolicyRecord[] }) {
                                             </td>
                                             <td>
                                                 <Pill value={p.status} />
+                                            </td>
+                                            <td>
+                                                {canManage && latest.state === 'DRAFT' && p.status === 'ACTIVE' ? (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        disabled={!!replaying}
+                                                        onClick={() => {
+                                                            setReplaying(p.id);
+                                                            setError('');
+                                                            router.post(
+                                                                '/replays',
+                                                                { draft_id: latest.id, limit: 100 },
+                                                                {
+                                                                    onFinish: () => setReplaying(''),
+                                                                    onError: (errors) => setError(Object.values(errors).join(' ')),
+                                                                },
+                                                            );
+                                                        }}
+                                                    >
+                                                        {replaying === p.id ? 'Comparing…' : 'Preview impact'}
+                                                    </Button>
+                                                ) : (
+                                                    '—'
+                                                )}
                                             </td>
                                             <td>
                                                 <Link href={`/policies/${p.id}`} aria-label={`Open ${p.name}`}>

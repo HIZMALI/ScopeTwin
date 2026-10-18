@@ -23,4 +23,12 @@ final class OrganizationContext
     {
         abort_unless(in_array(self::membership(request()->user())->role, ['OWNER', 'ADMIN'], true), 403);
     }
+
+    public static function writableId(User $actor): string
+    {
+        $membership = self::membership($actor);
+        abort_unless(in_array($membership->role, ['OWNER', 'ADMIN'], true), 403);
+
+        return $membership->organization_id;
+    }
 }

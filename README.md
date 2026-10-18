@@ -1,8 +1,10 @@
 # ScopeTwin
 
-Deterministic policy decisions for agent tool requests, with a versioned audit trail. Build 01 is a working Laravel monolith: registration, scoped organizations, agents, one-time API keys, policy drafts/publication, and recorded ALLOW / REVIEW / DENY decisions.
+Deterministic policy decisions for agent tool requests, with a versioned audit trail. Build 02 adds a real Replay Lab, policy-bound human approvals, read-only agent approval status, and actual Usage & Plans reporting to the existing Laravel monolith.
 
-**This endpoint evaluates requests only. It does not issue refunds, execute tools, call an LLM, or transfer money.** Review results are recorded; an approval workflow and the Replay Lab UI belong to Build 02.
+**ScopeTwin never issues refunds, executes tools, calls an LLM, or transfers money.** Approval records a human decision only; it does not grant an execution token or change an original REVIEW result. Proposed pricing has no checkout or charges.
+
+The complete Build 02 design, routes, measured verification and manual walkthrough are in [docs/BUILD02_TECHNICAL_NOTES.md](docs/BUILD02_TECHNICAL_NOTES.md).
 
 ## Local setup (Windows PowerShell 7)
 
@@ -19,6 +21,8 @@ For manual setup: copy `.env.example` to `.env`, set a random `DB_PASSWORD`, run
 
 The database queue is configured but no worker is needed for synchronous evaluations. `MAIL_MAILER=array` intentionally does not deliver or log reset emails. Configure a mail transport before using password recovery. No production deployment is included.
 
+For an existing Build 01 installation, keep `.env` and run `php artisan migrate --no-interaction` followed by `npm run build`. Build 02's additive migration creates only `replay_runs`, `replay_results`, and `approval_requests`; it does not reset data or backfill historical REVIEW decisions.
+
 ## Five-minute workflow
 
 1. Register / log in. Registration atomically provisions a workspace with OWNER membership.
@@ -26,6 +30,9 @@ The database queue is configured but no worker is needed for synchronous evaluat
 3. Open **Policies**, create and save a draft, then **Publish saved draft**. For an allow-refund rule choose `action_name equals refund.issue`, `amount_minor at most 50000`, `currency equals USD`, effect `ALLOW`, and reason `REFUND_WITHIN_LIMIT`.
 4. Add a `REVIEW` rule for `refund.issue`, amount `greater than 50000`, currency `USD`, reason `REFUND_REQUIRES_APPROVAL`. Add an `ALLOW` rule for `customer.read` if desired.
 5. Send the API request below. Overview and Decisions show the actual stored records, counts, reasons, agent, time and immutable policy snapshot. Decisions supports exact action / effect filters and 15-record pagination.
+6. Save a new unpublished DENY draft for USD refunds greater than `10000`. Click **Preview impact**. Replay Lab freezes current published rules and the draft, compares recorded requests, and shows original / baseline / candidate decisions. Default sample is 100; maximum is 500. No draft is published by replay.
+7. A new live REVIEW result creates one 24-hour **Pending** approval. Open **Approvals**, confirm Approve or Reject as an OWNER/ADMIN, and inspect its audit status. Policy changes, expiry, originating-key revocation or agent disablement block approval. Historical Build 01 REVIEW rows are read-only under **Historical reviews** and require fresh evaluation.
+8. **Usage & Plans** displays actual counts for the last 30 UTC days and explicitly proposed Free / $79 Team / $299 Business pricing; billing is not live.
 
 Alternatively, explicitly install all four development sample policies into an existing workspace. The workspace ID is available in the initial Inertia page props or via the following local command (which prints IDs only):
 
@@ -82,6 +89,16 @@ Measured HTTP 200 response from the browser/API verification run for the $120 re
 
 The same live run returned `REVIEW / REFUND_REQUIRES_APPROVAL / approval_required: true` for `amount_minor: 240000` and `DENY / DEFAULT_DENY / matched_policy_version_id: null` for `unknown.action`. The first successful request stores one action, decision and audit event in a transaction. The same key and normalized input return the saved response, even after policy publication changes. Reuse with different input returns HTTP 409. Idempotency is scoped to organization + agent, not the individual API key.
 
+Build 02 preserves that evaluation response exactly. New REVIEW decisions additionally store a PENDING approval and `approval.requested` audit in the same transaction; retries create no duplicate. Agents may read their own decision's status with the same bearer authentication:
+
+```http
+GET /api/v1/agent/decisions/<decision-uuid>/approval
+Authorization: Bearer <your-one-time-key>
+Accept: application/json
+```
+
+The response contains `decision_id`, nullable `approval_id`, `status`, nullable `expires_at` / `resolved_at`, and always `execution_performed: false`. Status is PENDING / APPROVED / REJECTED / STALE / EXPIRED; a pre-Build-02 REVIEW without a manifest returns REEVALUATION_REQUIRED, and a non-REVIEW decision returns NOT_REQUIRED. Another agent's decision returns 404, even within the same organization. GET is read-only and shares the agent rate limits.
+
 | Status | Meaning |
 | --- | --- |
 | 200 | Evaluation succeeded, including business DENY |
@@ -121,15 +138,20 @@ flowchart LR
   Service --> Engine[Pure deterministic PolicyEvaluator]
   Engine --> Snapshots[Current immutable policy snapshots]
   UI --> DB[(PostgreSQL)]
+  UI --> Replay[Bounded replay / frozen manifests]
+  Replay --> Engine
+  Replay --> DB
+  UI --> Approval[Atomic approval state transition]
+  Approval --> DB
   Snapshots --> DB
   Service --> DB
 ```
 
-One repository and one application; Vite builds assets served by Laravel. PostgreSQL holds organizations, organization_memberships, agents, agent_api_keys, policies, policy_versions, action_requests, policy_decisions and audit_events. Domain IDs are UUIDs; starter user IDs remain integers. Foreign keys, organization/time indexes, unique membership/version indexes and a unique organization-agent-idempotency index protect persistence.
+One repository and one application; Vite builds assets served by Laravel. PostgreSQL holds organizations, organization_memberships, agents, agent_api_keys, policies, policy_versions, action_requests, policy_decisions, audit_events, replay_runs, replay_results and approval_requests. Domain IDs are UUIDs; starter user IDs remain integers. Foreign keys, organization/time indexes, unique membership/version indexes, a unique organization-agent-idempotency index and unique approval-per-decision / result-per-run-request constraints protect persistence.
 
 Browser context comes from the authenticated user's first membership; agent context comes from the verified key. OWNER / ADMIN can manage controls; VIEWER can read. Every resource lookup includes organization scope, including explicit UUID, key-revocation and audit endpoints. There is no organization switcher or invitation flow in Build 01. The application uses explicit scoped queries, not database row-level security.
 
-Per-agent row locks serialize evaluation / key revocation and avoid duplicate races. The agent and key are checked again inside the transaction. A single query loads active snapshot pointers. Rate limits are 60 requests/minute/agent and 180 requests/minute/IP at ingress, with database cache in local development. This intentionally trades per-agent write throughput for a straightforward correctness boundary.
+Per-agent row locks serialize evaluation / key revocation / approval resolution and avoid duplicate races. Organization policy locks coordinate snapshot capture with publication and status changes. The agent and key are checked again inside the transaction. Only one approval terminal transition can succeed; a subsequent mutation returns 409. Rate limits are 60 requests/minute/agent and 180 requests/minute/IP at ingress. Replay creation is limited to 5/minute/user and 10/minute/organization; approval mutation to 30/minute/user/IP. Database cache is used locally. This intentionally trades write throughput for straightforward correctness boundaries.
 
 ## Verification
 
@@ -137,29 +159,30 @@ Per-agent row locks serialize evaluation / key revocation and avoid duplicate ra
 php artisan test
 npm run types:check
 npm run build
-npx eslint resources/js/pages/scope resources/js/components/scope.tsx resources/js/components/one-time-key.tsx
+npm run lint:check
 composer audit
 npm audit
 ./scripts/test-postgres.ps1
 ```
 
-The standard suite uses isolated in-memory SQLite. `test-postgres.ps1` uses only the disposable `scopetwin_test` database, runs the same suite, rolls back/reapplies the domain migration, and runs six simultaneous PHP worker requests through the persistence service to verify duplicate/conflict races against real PostgreSQL locks. It does not touch application data.
+The standard suite uses isolated in-memory SQLite. `test-postgres.ps1` uses only the disposable `scopetwin_test` database, runs the same suite, rolls back/reapplies both domain migrations, and verifies original idempotency, concurrent REVIEW retries, approve/reject competition, and concurrent policy-change invalidation against real PostgreSQL locks. It does not touch application data.
 
-For the browser test, start the local server, then:
+For browser tests, keep Docker PostgreSQL running, then:
 
 ```powershell
 npx playwright install chromium
 npm run test:browser
 ```
 
-The browser test registers a synthetic account with a generated password, logs out/in, creates an agent and three published rules, sends real HTTP requests, checks decisions/filters, checks mobile widths, revokes the key and logs out. It leaves synthetic history in the local workspace database; no reusable credentials are written to source or output. Browser traces and automatic screenshots are disabled around secrets. Explicit screenshots are captured only after hiding the issued key in ignored `storage/screenshots/`.
+Playwright creates/migrates the separate `scopetwin_browser_test` database and owns a server at port 18732; it leaves the application on 18731 untouched. Three Chromium specs cover Build 01 regression, Replay Lab and Approvals over real HTTP/PostgreSQL, with 1440 px desktop / 390 px mobile assertions and cross-site CSRF rejection. Synthetic passwords and API keys remain in test-process memory. Traces and automatic failure screenshots are disabled around secrets; explicit screenshots are captured only after hiding the issued key in ignored `storage/screenshots/`.
 
 Measured counts and command outcomes are maintained in [docs/IMPLEMENTATION_LOG.md](docs/IMPLEMENTATION_LOG.md). Local test success is not a security audit or production certification.
 
 ## Limits and next build
 
-- Build 02: Replay Lab with version comparison, authorized approval queue and replay result persistence; use the same pure evaluator. Snapshot re-evaluation is already covered by a no-network/no-write test, but no Replay Lab screen or replay API is claimed here.
+- Replay is synchronous and capped at 500 historical requests; each policy manifest is capped at 1 MiB. It measures decision-effect changes, not unverified false-positive/false-negative rates. Candidate drafts are frozen and explicitly marked as drafts, never fabricated published versions.
+- Invalid pending approvals are displayed as EXPIRED/STALE on read without writes; a resolution attempt persists the terminal invalid state and returns 409. No cron is required to block them. Start a fresh evaluation with a new idempotency key when policy, time or credential context is invalid.
 - No external refund connector, Backboard/LLM integration, payment gateway, usage billing, production deployment or remote push. No action executor exists.
 - Application-level scope and snapshot checks are not a substitute for operational controls over direct database access. Immutable snapshots are enforced by application code; no database immutability trigger is installed.
 - Browser coverage is Chromium on this machine. No Firefox/WebKit or independent accessibility/security audit has been performed.
-- Hypothetical pricing, not validated or charged: Free sandbox; Team $79/month; Business $299/month. Usage metering and pricing UI are future work.
+- Hypothetical pricing, not validated or charged: Free sandbox; Team $79/month; Business $299/month. The usage/pricing UI is implemented; paid entitlements, quotas, billing and subscriptions are not.

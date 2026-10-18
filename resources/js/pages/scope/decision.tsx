@@ -31,7 +31,16 @@ export default function Decision({ decision: d }: { decision: DecisionRecord }) 
                         </dd>
                     </dl>
                     {d.decision === 'REVIEW' && (
-                        <div className="scope-info">Review is required. The approval queue is planned for Build 02; no action has been executed.</div>
+                        <div className="scope-info">
+                            {d.approval ? (
+                                <Link className="scope-text-link" href={`/approvals/${d.approval.id}`}>
+                                    Open approval request
+                                </Link>
+                            ) : (
+                                'Historical review: reevaluation required. No actionable approval was backfilled.'
+                            )}
+                            <p>No external action has been executed.</p>
+                        </div>
                     )}
                 </section>
                 <section className="scope-panel scope-form-panel">

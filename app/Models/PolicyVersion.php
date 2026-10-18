@@ -2,10 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
 
 class PolicyVersion extends ScopedModel
 {
+    public function policy(): BelongsTo
+    {
+        return $this->belongsTo(Policy::class);
+    }
+
     protected function casts(): array
     {
         return ['conditions' => 'array', 'published_at' => 'datetime'];

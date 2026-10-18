@@ -8,6 +8,7 @@ use App\Models\Policy;
 use App\Models\PolicyVersion;
 use App\Services\Audit;
 use App\Services\OrganizationContext as Context;
+use App\Services\PolicySnapshots;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -48,6 +49,7 @@ class PolicyController extends Controller
         Context::authorizeWrite();
         $data = $this->validated($request);
         $policy = DB::transaction(function () use ($data, $request) {
+            PolicySnapshots::lock(Context::id(), true);
             $policy = Policy::create(['organization_id' => Context::id(), 'name' => $data['name'], 'status' => 'ACTIVE']);
             $this->saveDraft($policy, $data);
             Audit::record($policy->organization_id, 'policy.created', $policy->id, 'USER', (string) $request->user()->id);
@@ -63,6 +65,7 @@ class PolicyController extends Controller
         Context::authorizeWrite();
         $data = $this->validated($request);
         DB::transaction(function () use ($data, $id, $request) {
+            PolicySnapshots::lock(Context::id(), true);
             $policy = Policy::forOrganization(Context::id())->lockForUpdate()->findOrFail($id);
             $policy->update(['name' => $data['name'], 'status' => $data['status'] ?? $policy->status]);
             $this->saveDraft($policy, $data);
@@ -88,6 +91,7 @@ class PolicyController extends Controller
         Context::authorizeWrite();
         $data = $request->validate(['draft_id' => 'required|uuid']);
         DB::transaction(function () use ($id, $data, $request) {
+            PolicySnapshots::lock(Context::id(), true);
             $policy = Policy::forOrganization(Context::id())->lockForUpdate()->findOrFail($id);
             $draft = PolicyVersion::forOrganization(Context::id())->where('policy_id', $id)->where('state', 'DRAFT')->whereKey($data['draft_id'])->first();
             abort_unless($draft && $policy->status === 'ACTIVE', 409, 'Save an active draft before publishing.');
@@ -104,6 +108,7 @@ class PolicyController extends Controller
     {
         Context::authorizeWrite();
         DB::transaction(function () use ($id, $request) {
+            PolicySnapshots::lock(Context::id(), true);
             $policy = Policy::forOrganization(Context::id())->lockForUpdate()->findOrFail($id);
             $policy->update(['status' => 'DISABLED']);
             Audit::record($policy->organization_id, 'policy.disabled', $policy->id, 'USER', (string) $request->user()->id);

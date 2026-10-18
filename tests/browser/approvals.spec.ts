@@ -1,0 +1,84 @@
+import { expect, test } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
+import { createPolicy, evaluate, noOverflow, props, startWorkspace } from './helpers';
+
+test('Approvals record approve/reject, preserve REVIEW, block stale policies and revoked originating keys', async ({ page, request }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    const token = await startWorkspace(page);
+    const ruleUrl = await createPolicy(page, 'Refund review', 'REVIEW', 'HUMAN_REVIEW');
+    const action = { action_name: 'refund.issue', amount_minor: 240000, currency: 'USD' };
+    const idempotency = randomUUID();
+    const first = await (await evaluate(request, token, action, idempotency)).json();
+    expect(first.decision).toBe('REVIEW');
+    expect(await (await evaluate(request, token, action, idempotency)).json()).toEqual(first);
+    const lookup = async (id: string) => request.get(`/api/v1/agent/decisions/${id}/approval`, { headers: { Authorization: `Bearer ${token}` } });
+    const state = await (await lookup(first.decision_id)).json();
+    expect(state.status).toBe('PENDING');
+    const forged = await page.request.post(`/approvals/${state.approval_id}/resolve`, {
+        headers: { Origin: 'https://untrusted.example', 'Sec-Fetch-Site': 'cross-site', Accept: 'application/json' },
+        data: { status: 'APPROVED' },
+    });
+    expect(forged.status()).toBe(419);
+    expect((await request.get(`/approvals/${state.approval_id}`, { headers: { Accept: 'application/json' } })).status()).toBe(401);
+    await page.goto('/approvals');
+    expect((await props(page, '/approvals')).counts.pending).toBe(1);
+    await page.getByRole('link', { name: 'refund.issue', exact: true }).click();
+    await page.getByRole('button', { name: 'Approve', exact: true }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    expect((await (await lookup(first.decision_id)).json()).status).toBe('PENDING');
+    await page.getByRole('button', { name: 'Approve', exact: true }).click();
+    await page.getByRole('button', { name: 'Confirm approval', exact: true }).click();
+    await expect(page.getByRole('status')).toHaveText('Approved in ScopeTwin. No external action was executed.');
+    expect((await (await lookup(first.decision_id)).json()).status).toBe('APPROVED');
+    expect(await (await evaluate(request, token, action, idempotency)).json()).toEqual(first);
+    await page.screenshot({ path: 'storage/screenshots/build02-approval-desktop.png', fullPage: true });
+    const second = await (await evaluate(request, token, action)).json();
+    const secondState = await (await lookup(second.decision_id)).json();
+    await page.goto(`/approvals/${secondState.approval_id}`);
+    await page.getByRole('button', { name: 'Reject', exact: true }).click();
+    await page.getByRole('button', { name: 'Confirm rejection', exact: true }).click();
+    await expect(page.getByRole('status')).toHaveText('Rejected in ScopeTwin. No external action was executed.');
+    const third = await (await evaluate(request, token, action)).json();
+    const thirdState = await (await lookup(third.decision_id)).json();
+    await page.goto(ruleUrl);
+    await page.getByLabel('Decision effect').selectOption('DENY');
+    await page.getByLabel('Reason code').fill('UPDATED_PUBLISHED_BLOCK');
+    await page.getByRole('button', { name: 'Save draft' }).click();
+    await expect(page.getByRole('button', { name: 'Publish saved draft' })).toBeEnabled();
+    expect((await (await lookup(third.decision_id)).json()).status).toBe('PENDING');
+    await page.getByRole('button', { name: 'Publish saved draft' }).click();
+    await expect(page.getByRole('button', { name: 'Publish saved draft' })).toBeDisabled();
+    expect((await (await lookup(third.decision_id)).json()).status).toBe('STALE');
+    await page.goto(`/approvals/${thirdState.approval_id}`);
+    await expect(page.getByText('The active published policy set changed. Request a fresh evaluation.', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Approve', exact: true })).toHaveCount(0);
+    await page.goto(ruleUrl);
+    await page.getByLabel('Policy status').selectOption('DISABLED');
+    await page.getByRole('button', { name: 'Save draft' }).click();
+    await expect(page.getByRole('button', { name: 'Save draft' })).toBeEnabled();
+    await createPolicy(page, 'Fresh review rule', 'REVIEW', 'FRESH_REVIEW');
+    const fourth = await (await evaluate(request, token, action)).json();
+    const fourthState = await (await lookup(fourth.decision_id)).json();
+    expect(fourthState.status).toBe('PENDING');
+    await page.goto('/agents');
+    await page.getByRole('link', { name: 'Replay Test Agent', exact: true }).click();
+    await page.getByRole('button', { name: 'Revoke key' }).click();
+    await expect(page.getByText('REVOKED', { exact: true })).toBeVisible();
+    expect((await lookup(fourth.decision_id)).status()).toBe(401);
+    await page.goto(`/approvals/${fourthState.approval_id}`);
+    await expect(
+        page.getByText('The key that originated this request was revoked. Request a fresh evaluation with a valid key.', { exact: true }),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await noOverflow(page);
+    await page.screenshot({ path: 'storage/screenshots/build02-approval-mobile.png', fullPage: true });
+    await page.goto('/approvals?tab=resolved');
+    await noOverflow(page);
+    const resolved = await props(page, '/approvals?tab=resolved');
+    expect(resolved.counts).toEqual({ pending: 0, resolved: 4, historical: 0 });
+    await page.getByRole('link', { name: /Historical reviews/ }).click();
+    await expect(page.getByText('Reevaluation required', { exact: true })).toBeVisible();
+    expect(errors).toEqual([]);
+});

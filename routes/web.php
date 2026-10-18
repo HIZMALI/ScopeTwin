@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\PolicyController;
+use App\Http\Controllers\ReplayController;
+use App\Http\Controllers\UsageController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,7 +13,15 @@ Route::get('/', function () {
 })->name('home');
 
 $uuid = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
-Route::middleware(['auth'])->where(['id' => $uuid, 'keyId' => $uuid])->group(function () {
+Route::middleware(['auth'])->where(['id' => $uuid, 'keyId' => $uuid, 'resultId' => $uuid])->group(function () {
+    Route::get('replays', [ReplayController::class, 'index'])->name('replays.index');
+    Route::post('replays', [ReplayController::class, 'store'])->middleware('throttle:replays')->name('replays.store');
+    Route::get('replays/{id}', [ReplayController::class, 'show'])->name('replays.show');
+    Route::get('replays/{id}/results/{resultId}', [ReplayController::class, 'result'])->name('replays.result');
+    Route::get('approvals', [ApprovalController::class, 'index'])->name('approvals.index');
+    Route::get('approvals/{id}', [ApprovalController::class, 'show'])->name('approvals.show');
+    Route::post('approvals/{id}/resolve', [ApprovalController::class, 'resolve'])->middleware('throttle:30,1')->name('approvals.resolve');
+    Route::get('usage', UsageController::class)->name('usage');
     Route::get('dashboard', [WorkspaceController::class, 'dashboard'])->name('dashboard');
     Route::get('agents', [AgentController::class, 'index'])->name('agents.index');
     Route::post('agents', [AgentController::class, 'store'])->middleware('throttle:20,1')->name('agents.store');
