@@ -1,9 +1,10 @@
+param([ValidateSet('build03', 'build035')][string]$Build = 'build03')
 $ErrorActionPreference = 'Stop'
 Set-Location (Join-Path $PSScriptRoot '..')
 $scanner = 'aquasec/trivy@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222'
-foreach ($target in @(@{name='app';image='scopetwin:build03'},@{name='database';image='scopetwin-postgres:build03'})) {
-    $archive = Join-Path (Get-Location) ('storage/build03-scan-' + $target.name + '.tar')
-    $report = Join-Path (Get-Location) ('storage/build03-scan-' + $target.name + '.json')
+foreach ($target in @(@{name='app';image="scopetwin:$Build"},@{name='database';image="scopetwin-postgres:$Build"})) {
+    $archive = Join-Path (Get-Location) ("storage/$Build-scan-" + $target.name + '.tar')
+    $report = Join-Path (Get-Location) ("storage/$Build-scan-" + $target.name + '.json')
     & docker image save -o $archive $target.image
     if ($LASTEXITCODE -ne 0) { throw 'Image export failed.' }
     New-Item -ItemType File -Path $report -Force | Out-Null

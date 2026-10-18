@@ -15,6 +15,8 @@ final class RedactSecrets
             if (app()->isProduction()) {
                 return $record->with(message: 'Application event', context: [
                     'exception_type' => isset($record->context['exception']) ? get_debug_type($record->context['exception']) : null,
+                    'advisor_status' => in_array($record->context['advisor_status'] ?? '', ['cleanup_unconfirmed', 'completed', 'invalid_response', 'authentication', 'credit', 'rate_limit', 'provider_error', 'timeout', 'transport_error'], true) ? $record->context['advisor_status'] : null,
+                    'elapsed_ms' => isset($record->context['elapsed_ms']) && is_int($record->context['elapsed_ms']) ? max(0, min(60000, $record->context['elapsed_ms'])) : null,
                 ], extra: []);
             }
 

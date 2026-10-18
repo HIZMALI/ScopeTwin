@@ -46,7 +46,7 @@ Initial buyers are engineering leads at 10–100-person SaaS teams and AI automa
 
 The real app supports registration/login, scoped agents and keys, policy drafts/publication, real HTTP evaluations, decision history, frozen replay, documentary human review, own-agent approval lookup and actual usage counts. Automated regression runs on SQLite and PostgreSQL; isolated production-mode browser and security results are maintained in the release evidence document.
 
-There is no external action execution, payment service, live billing or Backboard/LLM integration. Replay is synchronous and bounded to 500 items. Scope and immutability are application-level; DB administrators remain privileged. Local checks do not establish public TLS, email delivery, independent penetration-test results, compliance certification or real-world capacity. Remote deployment, public GitHub publication, a final playable video and the actual Devpost submission require separate operator authorization/actions.
+There is no external action execution, payment service or live billing. The optional Backboard AI Replay Advisor adapter is implemented behind a disabled-by-default server flag, with aggregate-only input, role/CSRF checks, quotas and thread cleanup. Mocked HTTP tests verify the implementation; no live provider response, available model, current balance or real cost has been verified. Never present mock output as an actual provider demonstration. The public tour works without AI. Replay is synchronous and bounded to 500 items. Scope and immutability are application-level; DB administrators remain privileged. Local checks do not establish public TLS, email delivery, independent penetration-test results, compliance certification or real-world capacity. Remote deployment, public GitHub publication, a final playable video and actual submission require separate operator authorization/actions.
 
 ## Judge walkthrough
 
@@ -57,5 +57,7 @@ There is no external action execution, payment service, live billing or Backboar
 5. Explore the real workspace flow shown in the video and the documented test commands in **[PUBLIC_GITHUB_URL]**.
 
 ## Organizer checks before pasting
+
+Partner-credit issue remains unresolved: the participant reported the restricted Galuxium promotion as inactive in their own Backboard account. Ordinary initial credit does not establish redemption or eligibility. No successful redemption or live AI result is claimed. Confirm with the organizer privately; never publish restricted promotion strings.
 
 The owner must confirm registration/team eligibility, original-work dates, Discord membership and partner-credit redemption in their own accounts. The organizer's [credit announcement](https://galuxium-nexus-v2-29411.devpost.com/updates/45828-kindly-redeem-the-credits-on-mandatory-basis-to-be-eligible-for-judging) calls redemption mandatory; it does not by itself establish an API integration requirement. Confirm interpretation with the organizer. Never include a promo code/API secret in this text. [Official rules](https://galuxium-nexus-v2-29411.devpost.com/rules) were reviewed on 2026-10-18; account-specific eligibility and submission acceptance remain unverified.

@@ -190,7 +190,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Playwright creates/migrates the separate `scopetwin_browser_test` database and owns a server at port 18732; it leaves the application on 18731 untouched. Three Chromium specs cover Build 01 regression, Replay Lab and Approvals over real HTTP/PostgreSQL, with 1440 px desktop / 390 px mobile assertions and cross-site CSRF rejection. Synthetic passwords and API keys remain in test-process memory. Traces and automatic failure screenshots are disabled around secrets; explicit screenshots are captured only after hiding the issued key in ignored `storage/screenshots/`.
+Playwright creates/migrates the separate `scopetwin_browser_test` database and owns a server at port 18732; it leaves port 18731 untouched. The original three Chromium specs cover Build 01 regression, Replay Lab and Approvals over real HTTP/PostgreSQL; BUILD 03.5 adds a fourth Advisor UI scenario. Desktop/mobile assertions and real CSRF rejection remain. Synthetic passwords and API keys stay in test-process memory. Traces and automatic failure screenshots are disabled around secrets; explicit screenshots are captured only after hiding the issued key in ignored `storage/screenshots/`.
 
 Measured counts and command outcomes are maintained in [docs/IMPLEMENTATION_LOG.md](docs/IMPLEMENTATION_LOG.md). Local test success is not a security audit or production certification.
 
@@ -241,10 +241,18 @@ The preservation guard is for this implementation host's ignored baseline, not a
 
 - Replay is synchronous and capped at 500 historical requests; each policy manifest is capped at 1 MiB. It measures decision-effect changes, not unverified false-positive/false-negative rates. Candidate drafts are frozen and explicitly marked as drafts, never fabricated published versions.
 - Invalid pending approvals are displayed as EXPIRED/STALE on read without writes; a resolution attempt persists the terminal invalid state and returns 409. No cron is required to block them. Start a fresh evaluation with a new idempotency key when policy, time or credential context is invalid.
-- No external refund connector, Backboard/LLM integration, payment gateway, usage billing, production deployment or remote push. No action executor exists.
+- No external refund connector, payment gateway, usage billing, production deployment or remote push. No action executor exists. BUILD 03.5 adds an optional Backboard explanation adapter, disabled by default; live provider behavior remains untested.
 - Application-level scope and snapshot checks are not a substitute for operational controls over direct database access. Immutable snapshots are enforced by application code; no database immutability trigger is installed.
 - BUILD 03 adds Chromium/Firefox/WebKit production-mode journeys and axe checks. Windows WebKit link Tab traversal is a documented runtime limitation; programmatic skip focus and dialog behavior are checked there, with actual link Tab traversal in Chromium/Firefox. This is not an accessibility certification or independent security audit.
 - Hypothetical pricing, not validated or charged: Free sandbox; Team $79/month; Business $299/month. The usage/pricing UI is implemented; paid entitlements, quotas, billing and subscriptions are not.
+
+## Optional AI Replay Advisor (BUILD 03.5)
+
+OWNER/ADMIN users may explicitly request an English interpretation of frozen replay aggregates. The advisor cannot decide, change policies or execute actions. Server-enforced initial limits are three generation attempts/workspace/UTC day and one/user/rolling minute, with shared caching. Disabled/error states retain deterministic results. The public judge tour never calls Backboard.
+
+Private server variable names: `BACKBOARD_ENABLED`, `BACKBOARD_API_KEY`, `BACKBOARD_LLM_PROVIDER`, `BACKBOARD_MODEL_NAME`, `BACKBOARD_TIMEOUT_SECONDS`, `BACKBOARD_DAILY_CALLS`, `BACKBOARD_USER_CALLS_PER_MINUTE`, `BACKBOARD_CACHE_SECONDS`. No provider/model is guessed. **LIVE_NOT_TESTED**: no key or paid-call authorization was supplied. Read [setup, privacy, cleanup and spending procedure](docs/BACKBOARD_INTEGRATION.md) before enabling; thread deletion does not prove deletion of provider logs. The partner-promotion eligibility issue remains unresolved.
+
+For a separate production rehearsal run `./scripts/rehearse-production.ps1 -Build035`, then set `RELEASE_TEST_URL` to `http://127.0.0.1:18734` for release/security/load tests. Separate images/volumes/project preserve BUILD 03 on 18733. Scan with `./scripts/scan-containers.ps1 -Build build035`. Full evidence: [BUILD 03.5 report](docs/BUILD03_5_BACKBOARD_REPORT.md).
 
 ## License and provenance
 

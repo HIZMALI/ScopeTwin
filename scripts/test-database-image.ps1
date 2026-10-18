@@ -1,11 +1,12 @@
+param([ValidateSet('build03', 'build035')][string]$Build = 'build03')
 $ErrorActionPreference = 'Stop'
-$containerName = 'scopetwin-build03-initcheck'
+$containerName = "scopetwin-$Build-initcheck"
 if (& docker ps -aq --filter "name=^/$containerName`$") { throw 'Init-check container name already exists; refusing to replace it.' }
 $priorSecret = $env:POSTGRES_PASSWORD
 $created = $false
 try {
     $env:POSTGRES_PASSWORD = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
-    & docker run --rm -d --name $containerName -e POSTGRES_PASSWORD -e POSTGRES_USER=scopetwin_owner -e POSTGRES_DB=scopetwin_init_rehearsal scopetwin-postgres:build03 | Out-Null
+    & docker run --rm -d --name $containerName -e POSTGRES_PASSWORD -e POSTGRES_USER=scopetwin_owner -e POSTGRES_DB=scopetwin_init_rehearsal "scopetwin-postgres:$Build" | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Fresh isolated database startup failed.' }
     $created = $true
     $ready = $false

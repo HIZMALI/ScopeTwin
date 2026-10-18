@@ -139,7 +139,7 @@ test('production HTTP journey: register/login, API, replay, approval, usage and 
     expect(await props(page, replayUrl)).toMatchObject({ run: { summary: { changed: 2, newly_denied: 2 } } });
     if (browserName === 'chromium') {
         await page.screenshot({ path: 'storage/screenshots/build03-approval-390.png', fullPage: true });
-        writeFileSync('storage/build03-http-evidence.json', JSON.stringify({ url: 'http://127.0.0.1:18733', environment: 'production', apiEffects: ['ALLOW', 'REVIEW', 'DENY'], changed: 2, newlyDenied: 2, approvalStatus: 'APPROVED', executionPerformed: false, usage: usage.counts, timestamp: new Date().toISOString() }, null, 2));
+        writeFileSync('storage/build03-http-evidence.json', JSON.stringify({ url: new URL(page.url()).origin, environment: 'production', apiEffects: ['ALLOW', 'REVIEW', 'DENY'], changed: 2, newlyDenied: 2, approvalStatus: 'APPROVED', executionPerformed: false, usage: usage.counts, timestamp: new Date().toISOString() }, null, 2));
     }
     expect(errors).toEqual([]);
 });

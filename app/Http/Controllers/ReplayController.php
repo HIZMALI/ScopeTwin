@@ -9,6 +9,7 @@ use App\Models\PolicyVersion;
 use App\Models\ReplayResult;
 use App\Models\ReplayRun;
 use App\Services\OrganizationContext as Context;
+use App\Services\ReplayAdvisor;
 use App\Services\ReplayService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -44,7 +45,7 @@ class ReplayController extends Controller
         return to_route('replays.show', $run->id);
     }
 
-    public function show(Request $request, string $id)
+    public function show(Request $request, string $id, ReplayAdvisor $advisor)
     {
         $run = ReplayRun::forOrganization(Context::id())->with('actor:id,name')->findOrFail($id);
         $filters = $request->validate(['changed' => 'nullable|in:1,0', 'action' => 'nullable|string|max:128', 'effect' => 'nullable|in:ALLOW,REVIEW,DENY']);
@@ -59,7 +60,7 @@ class ReplayController extends Controller
             $query->where('candidate_effect', $filters['effect']);
         }
 
-        return Inertia::render('scope/replay', ['run' => $run, 'results' => $query->orderByDesc('changed')->orderBy('id')->paginate(20)->withQueryString(), 'filters' => $filters]);
+        return Inertia::render('scope/replay', ['run' => $run, 'results' => $query->orderByDesc('changed')->orderBy('id')->paginate(20)->withQueryString(), 'filters' => $filters, 'advisor' => $advisor->view($run)]);
     }
 
     public function result(string $id, string $resultId)

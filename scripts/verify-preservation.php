@@ -2,18 +2,19 @@
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 // Hash-only local regression guard. Never writes database contents or secrets.
 require __DIR__.'/../vendor/autoload.php';
 $app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-if (! app()->environment('local') || config('database.connections.'.config('database.default').'.database') !== 'scopetwin') {
+$build = in_array($argv[2] ?? '', ['build03', 'build035', 'build035-pg'], true) ? $argv[2] : 'build02';
+if (! str_starts_with($build, 'build035') && (! app()->environment('local') || config('database.connections.'.config('database.default').'.database') !== 'scopetwin')) {
     throw new RuntimeException('This guard is only for the local scopetwin database.');
 }
-$build = ($argv[2] ?? 'build02') === 'build03' ? 'build03' : 'build02';
 $path = storage_path($build.'-data-guard.json');
 $tables = ['users', 'organizations', 'organization_memberships', 'agents', 'agent_api_keys', 'policies', 'policy_versions', 'action_requests', 'policy_decisions', 'audit_events'];
-if ($build === 'build03') {
+if (in_array($build, ['build03', 'build035', 'build035-pg'], true)) {
     $tables = [...$tables, 'approval_requests', 'replay_runs', 'replay_results'];
 }
 if (($argv[1] ?? '') === 'capture') {
@@ -22,6 +23,9 @@ if (($argv[1] ?? '') === 'capture') {
     }
     $guard = ['env' => hash_file('sha256', base_path('.env')), 'tables' => []];
     foreach ($tables as $table) {
+        if (! Schema::hasTable($table)) {
+            continue;
+        }
         foreach (DB::table($table)->orderBy('id')->get() as $row) {
             $guard['tables'][$table][$row->id] = hash('sha256', json_encode($row, JSON_THROW_ON_ERROR));
         }

@@ -13,7 +13,7 @@ try {
     $env:DB_DATABASE = 'scopetwin_test'
     php artisan test --compact
     if ($LASTEXITCODE) { throw 'PostgreSQL tests failed' }
-    php artisan migrate:rollback --step=2 --force
+    php artisan migrate:rollback --step=3 --force
     if ($LASTEXITCODE) { throw 'Domain migration rollback failed' }
     php artisan migrate --force
     if ($LASTEXITCODE) { throw 'Domain migration replay failed' }
@@ -21,6 +21,8 @@ try {
     if ($LASTEXITCODE) { throw 'Concurrency checks failed' }
     php tests/scripts/approval-concurrency.php
     if ($LASTEXITCODE) { throw 'Approval concurrency checks failed' }
+    php tests/scripts/advisor-concurrency.php
+    if ($LASTEXITCODE) { throw 'Advisor concurrency checks failed' }
 } finally {
     $env:DB_CONNECTION = $previousConnection
     $env:DB_DATABASE = $previousDatabase

@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { request as httpRequest } from 'node:http';
+import process from 'node:process';
 
-const base = 'http://127.0.0.1:18733';
+const base = process.env.RELEASE_TEST_URL ?? 'http://127.0.0.1:18733';
+assert.ok(['http://127.0.0.1:18733', 'http://127.0.0.1:18734'].includes(base));
 const results = [];
 for (const path of ['/.env', '/.git/HEAD', '/storage/logs/laravel.log', '/vendor/autoload.php', '/tests/Feature/Build03Test.php', '/node_modules/package.json']) {
     const response = await fetch(base + path);
@@ -34,5 +36,5 @@ assert.equal(csrf.status, 419);
 const demo = await fetch(base + '/demo');
 assert.equal(demo.headers.getSetCookie().length, 0);
 const result = { results, forgedHost: hostStatus, forgedCsrf: csrf.status, readiness: ready.status, sessionHttpOnly: true, sessionSameSite: 'lax', secureCookie: 'loopback exception; real HTTPS not tested', demoCookies: 0, timestamp: new Date().toISOString() };
-writeFileSync('storage/build03-security-http.json', JSON.stringify(result, null, 2));
+writeFileSync(`storage/${base.endsWith('18734') ? 'build035' : 'build03'}-security-http.json`, JSON.stringify(result, null, 2));
 console.log(JSON.stringify(result));

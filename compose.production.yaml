@@ -1,6 +1,6 @@
 services:
   app:
-    image: scopetwin:build03
+    image: ${APP_IMAGE:-scopetwin:build03}
     build: .
     # Explicit allowlist: never give the web process the migration-owner password.
     environment:
@@ -38,6 +38,14 @@ services:
       PASSWORD_RECOVERY_ENABLED: ${PASSWORD_RECOVERY_ENABLED:-false}
       DEMO_ENABLED: ${DEMO_ENABLED:-false}
       DEMO_ALLOW_SETUP: ${DEMO_ALLOW_SETUP:-false}
+      BACKBOARD_ENABLED: ${BACKBOARD_ENABLED:-false}
+      BACKBOARD_API_KEY: ${BACKBOARD_API_KEY:-}
+      BACKBOARD_LLM_PROVIDER: ${BACKBOARD_LLM_PROVIDER:-}
+      BACKBOARD_MODEL_NAME: ${BACKBOARD_MODEL_NAME:-}
+      BACKBOARD_TIMEOUT_SECONDS: ${BACKBOARD_TIMEOUT_SECONDS:-12}
+      BACKBOARD_DAILY_CALLS: ${BACKBOARD_DAILY_CALLS:-3}
+      BACKBOARD_USER_CALLS_PER_MINUTE: ${BACKBOARD_USER_CALLS_PER_MINUTE:-1}
+      BACKBOARD_CACHE_SECONDS: ${BACKBOARD_CACHE_SECONDS:-900}
     ports:
       - "127.0.0.1:${RELEASE_PORT:-18733}:8080"
     volumes:
@@ -50,7 +58,7 @@ services:
     cap_drop: [ALL]
     restart: unless-stopped
   database:
-    image: scopetwin-postgres:build03
+    image: ${DATABASE_IMAGE:-scopetwin-postgres:build03}
     build:
       context: .
       dockerfile: deploy/postgres.Dockerfile

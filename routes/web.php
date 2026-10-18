@@ -3,6 +3,7 @@
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\PolicyController;
+use App\Http\Controllers\ReplayAdviceController;
 use App\Http\Controllers\ReplayController;
 use App\Http\Controllers\UsageController;
 use App\Http\Controllers\WorkspaceController;
@@ -13,6 +14,7 @@ Route::middleware(['auth'])->where(['id' => $uuid, 'keyId' => $uuid, 'resultId' 
     Route::get('replays', [ReplayController::class, 'index'])->name('replays.index');
     Route::post('replays', [ReplayController::class, 'store'])->middleware('throttle:replays')->name('replays.store');
     Route::get('replays/{id}', [ReplayController::class, 'show'])->name('replays.show');
+    Route::post('replays/{id}/advice', ReplayAdviceController::class)->middleware('throttle:20,1')->name('replays.advice');
     Route::get('replays/{id}/results/{resultId}', [ReplayController::class, 'result'])->name('replays.result');
     Route::get('approvals', [ApprovalController::class, 'index'])->name('approvals.index');
     Route::get('approvals/{id}', [ApprovalController::class, 'show'])->name('approvals.show');

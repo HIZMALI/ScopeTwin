@@ -23,12 +23,14 @@
 
 ## External launch blockers — do not check without real evidence
 
+BUILD 03.5 local addendum: 169 PHP tests / 1291 assertions on both SQLite/PostgreSQL, three advisor concurrency races, four Chromium regression scenarios and six three-browser release scenarios passed. Separate 18734 package, two additive advisor tables, quota/cache/cleanup and disabled fallback are implemented. Existing 183 PostgreSQL domain rows and .env are unchanged. Provider remains LIVE_NOT_TESTED/MODEL_NOT_SELECTED. Exact fresh evidence and initial local-environment limitation are in BUILD03_5_BACKBOARD_REPORT.md; BUILD 03 rows above describe the historical baseline.
+
 - [ ] **NOT TESTED / NOT AUTHORIZED:** select/approve hosting, operating costs, domain and DNS changes. No host was bought or exposed remotely.
 - [ ] **NOT DEPLOYED:** configure the approved TLS proxy, exact trusted addresses, real HTTPS/cookies/Host checks and certificate renewal. Then verify the public URL from outside the host without an existing session.
 - [ ] **NOT TESTED:** configure and verify real SMTP delivery before enabling recovery. Current array mailer is honestly unavailable for password recovery.
 - [ ] **NOT PUBLISHED:** owner approval for GitHub public repository/remote/push, license/provenance review and a final secret scan. No remote was created or changed.
 - [ ] **NOT VERIFIED:** owner Devpost/team participation, Discord membership and partner-credit redemption/eligibility. Confirm organizer interpretation; no promo code, API key or partner account action is automated.
-- [ ] **NOT CONFIGURED:** optional Backboard/LLM provider. Deterministic evaluation/replay/review works without it. No live provider call or paid quota was used.
+- [ ] **LIVE_NOT_TESTED / MODEL_NOT_SELECTED:** BUILD 03.5 optional Backboard adapter is implemented with mocked tests and disabled defaults. Privately verify model/JSON support/prices, assistant context and balance, obtain explicit spend authorization, then run the synthetic one-call smoke and verify cleanup. No real provider response or partner-promotion eligibility is claimed. See BACKBOARD_INTEGRATION.md and BUILD03_5_BACKBOARD_REPORT.md. Core evaluation/replay/review works without it.
 - [ ] **NOT PRODUCED:** capture/edit/play a real 3:15 MP4, upload only after authorization, then check `[VIDEO_URL]`. Storyboard/SRT/screenshots are ready; they are not a finished video.
 - [ ] **NOT SUBMITTED:** replace `[LIVE_DEMO_URL]`, `[PUBLIC_GITHUB_URL]`, `[VIDEO_URL]` only with verified real URLs, review the Devpost text and submit through the owner's account.
 - [ ] **NOT RUN REMOTELY:** GitHub-hosted CI, independent penetration test, formal accessibility/compliance certification and production capacity/restore RPO/RTO validation.

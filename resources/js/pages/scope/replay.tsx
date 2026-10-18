@@ -1,20 +1,24 @@
 import { ActionAmount, Paginated, ReplayResultRecord, ReplayRunRecord, TransitionMatrix } from '@/components/replay';
-import { DateTime, Empty, Pagination, Pill, ScopeLayout } from '@/components/scope';
+import { AdvisorState, ReplayAdvisor } from '@/components/replay-advisor';
+import { DateTime, Empty, Pagination, Pill, ScopeLayout, ScopeShared } from '@/components/scope';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function Replay({
     run,
     results,
     filters,
+    advisor,
 }: {
     run: ReplayRunRecord;
     results: Paginated<ReplayResultRecord>;
     filters: { action?: string; changed?: string; effect?: string };
+    advisor: AdvisorState;
 }) {
+    const { canManage } = usePage<ScopeShared>().props;
     const [action, setAction] = useState(filters.action ?? '');
     const [changed, setChanged] = useState(filters.changed ?? '');
     const [effect, setEffect] = useState(filters.effect ?? '');
@@ -99,6 +103,7 @@ export default function Replay({
                 </section>
                 <TransitionMatrix counts={run.summary.transitions} />
             </div>
+            <ReplayAdvisor runId={run.id} advisor={advisor} canManage={canManage} />
             <section className="scope-panel">
                 <form
                     className="scope-filters scope-wrap"

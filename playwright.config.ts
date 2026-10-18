@@ -22,6 +22,8 @@ export default defineConfig({
             APP_URL: 'http://127.0.0.1:18732',
             APP_ENV: 'local',
             APP_DEBUG: 'false',
+            BACKBOARD_ENABLED: 'false',
+            BACKBOARD_API_KEY: '',
             SESSION_COOKIE: 'scopetwin_browser_test_session',
         },
     },
