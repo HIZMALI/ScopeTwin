@@ -2,6 +2,8 @@
 
 Tarih: 2026-10-18. Taban `fea6281`; yerel dal `feat/build-03-6-backboard-connectivity`. Başlangıçta yalnızca iki izlenmeyen talimat dosyası vardı. Kullanıcı bunları koruyarak yeni dala devam edilmesini açıkça onayladı. Dosyaların içeriği değiştirilmedi. Bu çalışma AI üretimi veya uzak assistant/thread yazımı/silmesi yapmadı. Push, deployment, satın alma, promosyon işlemi, mevcut servis recreation veya özel ortam/ACL değişikliği yapılmadı.
 
+**Güncel durum:** Yukarıdaki paragraf ve ilk bölümler ilk BUILD 03.6 çalışmasının tarihsel kaydıdır. Sonraki açık kullanıcı onayıyla dedicated assistant ve yalnız 18734 özel yapılandırma/recreation tamamlandı. Güncel ölçümler aşağıdaki **Onaylı assistant ve 18734 hazırlığı** bölümündedir. **Canlı generation hâlâ NOT TESTED; BACKBOARD_ENABLED=false.**
+
 ## Ölçülen durum
 
 | Alan | Sonuç |
@@ -72,3 +74,56 @@ Galuxium partner promosyonu çözümlenmedi; katalog erişimi veya sıradan kred
 ## Resmi sözleşmeler
 
 [Send message](https://docs.backboard.io/api-reference/threads/send-message), [model fields/pricing units](https://docs.backboard.io/concepts/models), [list models](https://docs.backboard.io/api-reference/models/list), [assistant inventory](https://docs.backboard.io/api-reference/assistants/list), [delete thread](https://docs.backboard.io/api-reference/threads/delete), [PHP curl CA](https://www.php.net/manual/en/curl.configuration.php), [curl certificate trust](https://curl.se/docs/sslcerts.html). Belgeler 2026-10-18'de yeniden incelendi. Canlı generation veya cleanup sonucu yerine geçmez.
+
+## Onaylı assistant ve 18734 hazırlığı — 2026-10-18
+
+Başlangıç: doğrulanmış `5186390`, temiz `feat/build-03-6-backboard-connectivity`. Kullanıcı bu mevcut dalda devam edilmesini, en fazla bir dedicated assistant oluşturulmasını ve yalnız 18734 özel ayar/app recreation işlemini açıkça onayladı. Yeni dal açılmadı. Daha önce onayla düzeltilen üç özel dosya ACL'si başlangıçta PRIVATE olarak doğrulandı; bu işlemde ACL değişmedi. Bu bölüm eski onay bekleyen maddelerin hangilerinin gerçekten tamamlandığını kaydeder.
+
+| İstenen sonuç | Gerçek ölçüm |
+| --- | --- |
+| Assistant oluşturuldu mu? | **EVET.** Önce `GET /api/assistants?name=ScopeTwin%20Replay%20Advisor&skip=0&limit=20`: HTTP 200, geçerli JSON dizi, tam isim eşleşmesi **0**. Ardından **yalnız bir** `POST /api/assistants`: HTTP **200**; retry yapılmadı. Assistant adı **ScopeTwin Replay Advisor**. |
+| İzolasyon doğrulandı mı? | **EVET, ölçülen kapsamda.** Dönen UUID özel bellekte doğrulandı; ayrı assistant GET'iyle aynı kimlik/isim/talimatlar ve araçsız yapı kontrol edildi. Assistant kapsamlı documents GET'i **0 belge**, threads GET'i **0 thread**, memory stats GET'i **0 memory** döndürdü. Her kontrol HTTP 200. Başka/default assistant kullanılmadı veya değiştirilmedi. |
+| Provider/model | **featherless / openai/gpt-oss-20b**, provider+text+JSON filtreli güncel katalog GET'i HTTP 200; exact model kaydı ve JSON-output true doğrulandı. İlan edilen fiyat: **girdi USD 0.0375 / çıktı USD 0.15 / 1M token**. Bu bir üretim veya gerçekleşmiş maliyet testi değildir. |
+| 18734 özel config | **VERIFIED_DISABLED.** Yalnız BACKBOARD_API_KEY, BACKBOARD_ASSISTANT_ID, BACKBOARD_LLM_PROVIDER, BACKBOARD_MODEL_NAME ve gerekli APP_IMAGE alanı güncellendi. BACKBOARD_ENABLED **false** kaldı. Boot config cache'inde key/UUID bağlama eşitliği hash ile, provider/model ve kota değerleri ayrıca doğrulandı. Değerler rapora çıkarılmadı. |
+| Image / sağlık | Yalnız `scopetwin-build035-app-1`, **scopetwin:build036** ile app-only recreate edildi. Çalışan image kimliği özel rollback kaydıyla ve BUILD 03.6 kaynağının sekiz kritik paket dosyası hash'iyle eşleşti. Docker **healthy**, `/ready` **200**. DB container/volume kimlikleri aynı. |
+| Mevcut sırlar/veri | APP_KEY, runtime DB_PASSWORD, migration-owner password ve diğer ilgisiz ortam değerleri aynı. Kök `.env` ve 18733 özel dosya hash'leri aynı; üç dosyanın ACL/owner bilgisi aynı. 18734'te migration/seed/reset yapılmadı. |
+| 18731 / 18733 | Her ikisi `/ready` **200**. 18731 PID ve başlangıç anı aynı; 18733 app/DB container kimliği, başlangıcı, image/env hash'leri ve volume bağları aynı. Restart/config-cache reset uygulanmadı. |
+| Canlı generation | **NOT TESTED.** Gerçek `/threads/messages`, thread oluşturma veya remote DELETE/PUT yok. Canlı smoke komutu çalıştırılmadı. Kredi/bakiye değişimi **NOT CLAIMED**. |
+
+### Güvenlik ve API kapsamı
+
+Resmî [create](https://docs.backboard.io/api-reference/assistants/create), [exact-name list](https://docs.backboard.io/api-reference/assistants/list), [get](https://docs.backboard.io/api-reference/assistants/get), [documents](https://docs.backboard.io/api-reference/assistants/list-documents), [threads](https://docs.backboard.io/api-reference/assistants/list-threads), [memory stats](https://docs.backboard.io/api-reference/memories/stats) ve [model catalog](https://docs.backboard.io/api-reference/models/list) sözleşmeleri okundu. Authenticated işlem toplamı **altı GET + tek assistant-create POST**; normal Windows TLS doğrulaması, redirects kapalı ve sınırlı timeout ile yapıldı. Anahtar sadece kök `.env` dosyasından bellekte okundu. Response, header, UUID ve özel prompt içerikleri evidence/Git/loglara alınmadı.
+
+Assistant yalnız aggregate policy replay açıklaması için oluşturuldu; araçlar boş, policy authorization ve gerçek işlem yetkisi yasaklandı. Resmî create şeması assistant genelinde memory/search kapatma bayrağı sunmuyor. Bu nedenle genel ve kalıcı provider kapatması iddia edilmiyor: boş assistant bağlamı doğrulandı; mevcut adapter her mesajda `memory=off`, `web_search=off`, `tools=[]`, streaming/media kapalı gönderiyor. Bu kontroller provider operasyon loglarının saklanmadığını kanıtlamaz. Windows PHP'nin genel CA/INI ayarına dokunulmadı; Windows güvenilir TLS yolu discovery için, 18734'ün mevcut CA paketi runtime için kullanıldı. Yeni container'dan anahtarsız public TLS probu **cURL 0 / HTTP 200 / doğrulama açık** döndü.
+
+Özel rollback kopyası **CurrentUser DPAPI** ile şifreli, yalnız mevcut kullanıcı/SYSTEM/Administrators erişimli LocalAppData klasöründe tutuluyor. Klasör: `C:/Users/merth/AppData/Local/ScopeTwin-Backboard-Setup-20261018-233057-ed63377e`; environment yedeği `rehearsal-env-before.dpapi`, işlem durumu `state.dpapi`. Plaintext env yedeği yok. Yeni ayar mevcut dosyaya ACL korunarak yazıldı; Compose model çıktısı yalnız bellekte denetlendi. Kök env topluca kullanılmadı. Compose sadece açık private `--env-file`, sabit project/file, `up -d --no-deps --force-recreate --no-build --pull never app` kapsamıyla çalıştırıldı. `down -v`, owner DB migration, `migrate:fresh`, `db:wipe` veya reseed yok.
+
+İlk config kontrolü, PowerShell/.NET'in null env atamasını boş süreç değişkeni olarak bırakıp Compose dosya değerini gölgelemesini yakaladı; dosya geri alındı. Süreç env girdilerini gerçekten kaldıran yöntemle düzeltildi. İlk recreation doğrulaması da otomatik geri dönüş yaptı; o ilk kontrolün ayrıntılı nedeni tutulmadı. Sonraki koşu, JSON'un başlangıç zamanını DateTime'a çevirmesi nedeniyle yanlış alarm verdi; PID ve gerçek UTC başlangıç anı aynıydı. Karşılaştırma UTC ticks ile düzeltildi; mount alanları sıralamadan bağımsız denetlendi ve production paket kontrolünde dev-only PHPUnit assertion bağımlılığı kaldırıldı. Son recreation ve tüm final koruma kontrolleri geçti. Bu geçici betik sorunları uygulama arızası veya veri kaybı olarak yorumlanmıyor; önceki image/env güvenli geri dönüşleri korundu. Uzak assistant POST'u hiçbir aşamada tekrarlanmadı.
+
+### Bu görevde yeniden çalıştırılan testler
+
+| Kontrol | Gerçek sonuç / evidence |
+| --- | --- |
+| SQLite `php artisan test --compact` | **178 PASS / 1367 assertion**, **8.44s**; `storage/backboard-setup-sqlite.txt` |
+| PostgreSQL `scripts/test-postgres.ps1` | **178 PASS / 1367 assertion**, **36.21s**, yalnız `scopetwin_test`; `storage/backboard-setup-postgres.txt` |
+| Migration / yarışlar | Disposable PG'de üç migration rollback/reapply PASS; idempotency, approval, eşzamanlı policy değişimi ve üç advisor kota/cache yarışı PASS. Provider çağrıları tamamen **mock**; gerçek AI/thread yok. |
+| Chromium tam uygulama | **4 PASS**, **1.1 dakika**; ayrı 18732 / `scopetwin_browser_test`. Advisor fallback/mocked UI, CSRF, kayıt/login/API, policy, replay ve approvals. `storage/backboard-setup-browser.txt` |
+| Yeni 18734 public tur | **3 PASS**, **14.4s**, Chromium/Firefox/WebKit; masaüstü/mobil, CSP, axe ve klavye. `storage/backboard-setup-release-public.txt`. Windows WebKit gerçek link Tab sınırlaması önceki gibi kayıtlı; programatik focus kontrol edildi. |
+| Paket guard | BUILD 03.6 image'ı ayrı `--network none` konteynerde disabled/missing/malformed/valid assistant config durumlarını doğru döndürdü; yalnız mock değerler, DB/HTTP yok. |
+| Gerçek 18734 kapalı advisor | Mevcut sentetik fixture readonly transaction'da doğrulandı; `advise` sonucu disabled, HTTP kayıt sayısı sıfır, kota/cache yazımı yok. API/UUID/APP_KEY/DB_PASSWORD cache eşitliği özel hash karşılaştırmasıyla doğrulandı. |
+| TypeScript / ESLint / Prettier / Pint | **PASS**, kaynak kodunda düzeltme gerekmedi. |
+| Vite build | **PASS, 3.52s**, 2027 modül; ayrı özel output klasöründe production build. Çalışan 18731'in `public/build` dosyaları değiştirilmedi. Sonuç `storage/backboard-setup-build.txt` içinde. |
+| Composer / npm / source secrets | Strict Composer valid; Composer advisory **0**, npm vulnerability **0**. **304 kaynak yolu** secret-pattern ve gerçek özel key/assistant/ortam değerleri için ek literal tarama **PASS**; doküman diff whitespace kontrolü **PASS**. Private env dosyalarının Git ignore durumu doğrulandı. Pattern taraması bağımsız güvenlik denetimi değildir. |
+| Çalışan app image Trivy | Çalışan 18734 image'ının ayrı export'u tarandı: **0 HIGH / CRITICAL**, **2026-10-18 20:42:35Z**. Ignore/suppression yok. `storage/backboard-setup-scan-app.json`, `storage/backboard-setup-container-scan.txt`. Değişmeyen DB image'ı yeniden taranmış sayılmadı. |
+| Public güvenlik / log | Dört stateless public yol 200/cookie yok; dört private yol 404; forged Host 400; public POST 405; CSP PASS. Public HTML ve yeni container logları gerçek private key/UUID/ortam sırlarıyla eşleşmiyor. |
+| Veri ve servis koruması | Legacy guard: kök `.env` ve **183 orijinal domain kaydı MATCH**. 18733'ün **21 tablosu MATCH**. Recreation hemen sonrasında 18734'ün **23 tablosu MATCH**; public tur sonrasında **22 tablo MATCH**, yalnız framework `cache` hash'i değişti, satır sayısı **76 → 76**. API 401 testi throttle middleware'den geçtiği için framework cache yazımı beklenir; alan/advisor/oturum verisi değişmedi. Cache elle silinmedi veya geri yazılmadı. |
+
+Özel runtime ayarı ve dokümanlar dışında uygulama kaynak değişikliği veya yeni migration gerekmedi. Mevcut 18734'e kayıt/login gibi yazımlı release testleri uygulanmadı; tam iş akışları disposable ortamda çalıştı. Frontend build özel output'a yönlendirildi. Testler sırasında gerçek Backboard anahtarı test runner'lara verilmedi; `Http::preventStrayRequests` ve faked HTTP sınırları korundu.
+
+### Kalan izin ve sınırlar
+
+**Hazır olan:** dedicated/boş assistant, doğru özel binding, seçilmiş katalog modeli, BUILD 03.6 paketi, Docker CA, geçerli sentetik fixture, boş advisor kota/cache, üç/gün ve bir/dakika sınırları, kapalı güvenli fallback. Teknik hazırlık tamamlandı.
+
+**Hazır olmayan/kanıtlanmayan:** gerçek generation başarısı/yanıt şeması, açıklama kalitesi, output filtresinden geçiş, gecikme, gerçek fatura/bakiye ve canlı thread cleanup. Katalog kaydı bunları kanıtlamaz. Çağrı kotası dolar tavanı değildir; timeout ücretlenebilir. Sponsor kredi/uygunluk konusu hâlâ doğrulanmadı.
+
+**Sonraki tek adım ayrı izin gerektirir:** yalnız 18734'te geçici enable/recreation ile **bir sentetik generation**, API'nin bunun için açacağı **thread** ve adapter'ın **best-effort DELETE cleanup** işlemi birlikte açıkça onaylanmalı; bakiye/kullanım özel olarak gözden geçirilmeli. Mevcut onay bunları kapsamıyor. Bu izin gelene kadar BACKBOARD_ENABLED=false korunur; canlı smoke çalıştırılmaz. GitHub push, uzak deployment, DNS veya hizmet satın alma yapılmadı.

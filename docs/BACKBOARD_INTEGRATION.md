@@ -1,6 +1,6 @@
 # AI Replay Advisor — BUILD 03.6
 
-**Backboard live call: NOT TESTED.** BUILD 03.6 adds mandatory explicit assistant binding and mocked verification. One authenticated model-catalog GET verified three candidate records and advertised prices; one assistant-inventory GET returned HTTP 200 but its inventory shape was not validated. No generation, remote write/delete or account change occurred. No runtime model is selected; balance/credit changes are not claimed. Decisions, replay, documentary approvals and the public judge tour work without AI. See BUILD03_6_CONNECTIVITY_REPORT.md for the measured findings and operator approvals.
+**Backboard live call: NOT TESTED.** On 2026-10-18, after explicit operator authorization, an exact-name lookup returned no matching assistant and one dedicated **ScopeTwin Replay Advisor** was created. Read-only checks confirmed its identity and zero tools/documents/threads/memories. Only the isolated 18734 environment was privately bound to it and to `featherless` / `openai/gpt-oss-20b`, then recreated with the verified BUILD 03.6 image. **BACKBOARD_ENABLED=false** remains enforced. No generation, thread creation/deletion, remote deletion, push or internet deployment occurred. Balance/credit changes are not claimed. Decisions, replay, documentary approvals and the public judge tour work without AI. See the authorized follow-up in BUILD03_6_CONNECTIVITY_REPORT.md for current evidence; earlier preflight findings there remain historical.
 
 ## Boundary
 
@@ -16,11 +16,15 @@ Output has exactly `explanation` and `questions`, at most 900 ASCII visible char
 
 Apply the additive migration through the normal explicit owner/migration procedure before enabling: `php artisan migrate --force`. It creates only advisor tables and leaves existing records untouched. Runtime permissions need SELECT/INSERT/UPDATE/DELETE on those tables. No migration or environment rewrite was run against the user's application database during this build; fresh/reversible migration checks used disposable databases.
 
-1. Keep disabled until explicitly authorized for spending. Create a key privately in Backboard **Settings → API Keys**. Never paste it into chat, source, CLI arguments, browser storage, logs or screenshots. Use an ignored operator environment or secret manager; do not overwrite the application's existing environment, APP_KEY or DB_PASSWORD.
+1. Keep disabled until explicitly authorized for spending. Use the approved existing private API key; never paste it into chat, source, CLI arguments, browser storage, logs or screenshots. Use an ignored operator environment or secret manager; preserve the application's APP_KEY and DB_PASSWORD. For the approved 18734 setup, only BACKBOARD_API_KEY was read from the root `.env` in process memory; that file was never used as the rehearsal application's configuration or copied wholesale.
 2. In the authenticated official model catalog/dashboard, verify a currently available economical **text** provider/model, JSON output support, input/output unit prices and limits. The documented authenticated `GET /api/models?model_type=llm&supports_json_output=true` lists these capabilities/prices. Examples do not prove availability. No default model/provider is guessed here. Do not print authenticated responses into build evidence.
-3. Obtain separate authorization to create a dedicated empty ScopeTwin assistant; none was created in this build. The owner must privately inspect its documents, memory and tools and supply its UUID as `BACKBOARD_ASSISTANT_ID`, never through chat or screenshots. Inventory alone cannot establish isolation. The endpoint would otherwise select/create a default assistant; this implementation prevents that path. Binding does not prove absence of provider logging or accidental future configuration changes. The adapter never creates, updates or deletes assistants.
+3. A separately authorized dedicated assistant is now created, checked and privately configured for **18734 only**. For another installation, obtain separate creation/configuration authorization. Use the documented exact-name filter before creating; an ambiguous POST result must be resolved by a read before any retry. Validate the UUID privately and verify empty tools, documents, threads and memory. Never place IDs in chat, Git, logs or screenshots. Inventory alone cannot establish isolation. The adapter never creates, updates or deletes assistants and never falls back to the account's default/first assistant. Binding does not prove absence of provider logging or future configuration drift.
 4. Configure these **server-only names** privately, only after operator approval: `BACKBOARD_ENABLED`, `BACKBOARD_API_KEY`, `BACKBOARD_ASSISTANT_ID`, `BACKBOARD_LLM_PROVIDER`, `BACKBOARD_MODEL_NAME`, `BACKBOARD_TIMEOUT_SECONDS`, `BACKBOARD_DAILY_CALLS`, `BACKBOARD_USER_CALLS_PER_MINUTE`, `BACKBOARD_CACHE_SECONDS`. See disabled conservative defaults in `config/backboard.php` / `.env.production.example`. Never create `VITE_` equivalents. Configuration is cached at container boot; only an approved isolated-runtime recreation refreshes it. Do not clear caches/recreate existing services during a read-only diagnostic. Missing/invalid settings cause zero calls. Production Compose passes only the explicit allowlist; Inertia props expose no key, assistant ID or model settings. No new schema migration is needed for BUILD 03.6.
 5. Monitor actual balance and usage in the Backboard dashboard. Do not enable auto-recharge or purchase credits. The documented ordinary initial credit normally expires after thirty days; no account-specific balance/expiry is claimed. Core workflows retain deterministic fallback after credit exhaustion.
+
+The selected 18734 model was revalidated by an authenticated, provider-filtered catalog GET on 2026-10-18: text/JSON support, advertised input **USD 0.0375** and output **USD 0.15** per million tokens. This verifies the catalog record, not generation availability, quality, latency or final billing. The official assistant-create schema exposes no assistant-wide memory or external-search disable switch. The new assistant has no tools/documents/memories/threads; its instructions prohibit policy authorization, search and persistence. The adapter independently sends `memory=off`, `web_search=off`, empty tools and disabled media on every future message. These request controls do not establish provider-wide zero retention.
+
+The protected rehearsal file keeps the same APP_KEY, DB_PASSWORD, migration-owner password, database identity, port and volumes. Only four Backboard fields and APP_IMAGE changed. All three private-file ACLs remain private and unchanged. Configuration was cached at app-only recreation; the database service was not recreated, migrated or seeded. Encrypted CurrentUser DPAPI rollback material is stored outside Git under the operator's LocalAppData. The 18731 process, 18733 installation and original 183 domain rows were verified preserved.
 
 ## Quota and failure semantics
 
@@ -36,13 +40,13 @@ Every request creates a new thread. A valid returned thread UUID enables one `fi
 
 ## Separately authorized live smoke
 
-Use only a dedicated `scopetwin_*demo` / `scopetwin_*rehearsal` database with the fixed synthetic `scope:judge-demo --confirm-disposable` fixture. After private setup and explicit human authorization for one credit-consuming generation:
+Use only a dedicated `scopetwin_*demo` / `scopetwin_*rehearsal` database with the fixed synthetic fixture. The existing 18734 fixture is already validated; do not reseed/reset it. Only after separate human authorization covering one credit-consuming generation, its implicit thread creation and the adapter's best-effort thread DELETE may the operator temporarily enable the isolated environment and invoke:
 
 ```powershell
 php artisan scope:backboard-smoke --live-backboard-smoke --confirm-charge-credits
 ```
 
-The command validates the exact synthetic aggregate, uses existing quotas, calls once, attempts cleanup and prints only SUCCESS/FAIL and cleanup state. No model output/key/thread IDs. Both flags are mandatory; absent flags, disabled/unconfigured integration or cache reuse yields LIVE_NOT_TESTED. **The charge-confirmed command was not run during this build.** Automated tests fake HTTP and prevent stray requests.
+The command validates the exact synthetic aggregate, uses existing quotas, calls once, attempts cleanup and prints only SUCCESS/FAIL and cleanup state. No model output/key/thread IDs. Both flags are mandatory; absent flags, disabled/unconfigured integration or cache reuse yields LIVE_NOT_TESTED. **The charge-confirmed command was not run. Current permission explicitly excludes generation, thread creation and remote deletion.** Do not enable or run it under the setup authorization. Automated tests fake HTTP and prevent stray requests.
 
 ## Submission and eligibility
 
@@ -54,6 +58,11 @@ The participant reported that the restricted Galuxium partner promotion was inac
 - [Send message](https://docs.backboard.io/api-reference/threads/send-message)
 - [Thread lifecycle/deletion](https://docs.backboard.io/concepts/threads)
 - [Model discovery](https://docs.backboard.io/concepts/models)
+- [Create assistant](https://docs.backboard.io/api-reference/assistants/create)
+- [Exact-name lookup](https://docs.backboard.io/api-reference/assistants/list)
+- [Assistant documents](https://docs.backboard.io/api-reference/assistants/list-documents)
+- [Assistant threads](https://docs.backboard.io/api-reference/assistants/list-threads)
+- [Memory statistics](https://docs.backboard.io/api-reference/memories/stats)
 - [Billing](https://docs.backboard.io/concepts/billing)
 
-Reviewed 2026-10-18. Catalog-advertised prices/candidates were read under verified TLS; live generation, balance and assistant isolation remain unverified. Actual BUILD 03.6 evidence and the proposed CA/ACL/private-runtime changes: `BUILD03_6_CONNECTIVITY_REPORT.md`. Historical BUILD 03.5 evidence remains in its separate report.
+Reviewed 2026-10-18. The approved assistant's empty context and private 18734 binding are verified; generation, balance, real cost, response behavior and provider retention remain unverified. Current setup evidence and historical CA/ACL findings: `BUILD03_6_CONNECTIVITY_REPORT.md`. Historical BUILD 03.5 evidence remains in its separate report.
