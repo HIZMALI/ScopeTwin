@@ -9,7 +9,7 @@ Current public source: [HIZMALI/ScopeTwin](https://github.com/HIZMALI/ScopeTwin)
 - [x] Verified HTTPS,redirect,HSTS,cookies,Host/private path/CSRF/demo boundaries,spoof-resistant rate limit.
 - [x] External DB access closed; actual owner connection rejected, internal app healthy.
 - [x] Backboard and SMTP/recovery disabled; no generation/purchase/video/Devpost action.
-- [ ] Natural free-tier sleep/wake timing — recorded separately in the current release report.
+- [x] 16-minute no-traffic-client window measured:1.149s next page,unchanged persisted demo,/ready200,HSTS. Actual provider suspension was not observed; cold-start latency remains unverified. See current release report.
 - [ ] Owner video upload,eligibility review,Devpost submission.
 - [ ] Long-term persistence/SLA/backup/SMTP require a separately approved operating plan. Free DB expires November19,2026.
 

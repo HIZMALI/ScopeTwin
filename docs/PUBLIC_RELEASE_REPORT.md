@@ -10,7 +10,7 @@ Tarih: 21 Ekim 2026, Europe/Istanbul. Bu rapor önceki BUILD belgelerinin tarihl
 - Üçlü karşılaştırma: https://scopetwin-hizmali.onrender.com/demo/replay
 - Sağlık: https://scopetwin-hizmali.onrender.com/ready
 
-Doğrulanmış 0d2d18f tabanı force push olmadan yayımlandı. Kullanıcının özellikle korunmasını istediği eski yerel main zorla değiştirilmedi; mevcut feat/build-03-6-backboard-connectivity dalında çalışıldı. Linux CI ve gerçek yönetilen proxy yolu için gereken düzeltmeler ayrıca normal commit/push ile yayımlandı. Son uygulama düzeltmesi: 03c9ca5; son kaynak/belge commit'i GitHub main ve nihai teslimde belirtilir.
+Doğrulanmış 0d2d18f tabanı force push olmadan yayımlandı. Kullanıcının özellikle korunmasını istediği eski yerel main zorla değiştirilmedi; mevcut feat/build-03-6-backboard-connectivity dalında çalışıldı. Linux CI ve gerçek yönetilen proxy yolu için gereken düzeltmeler ayrıca normal commit/push ile yayımlandı. Son uygulama düzeltmesi: 20f9a7d; son kaynak/belge commit'i GitHub main ve nihai teslimde belirtilir.
 
 ## Yeni ve izole hosting
 
@@ -29,13 +29,14 @@ APP_ENV=production,APP_DEBUG=false,BACKBOARD_ENABLED=false. Uzak ortama Backboar
 3. Gerçek spoof testi ziyaretçi X-Forwarded-For değerlerinin kayıt rate limit kimliğini değiştirebildiğini gösterdi. Yalnızca bu doğrulanmış Render/Cloudflare yolunda, güvenilir peer üzerinden edge'in üzerine yazdığı CF-Connecting-IP tek değeri normalize edilir. Eksik/geçersiz değer ziyaretçinin XFF zincirine geri dönmez. Default/local davranış değişmedi. Uzak test sahte başlıklarla da429 aldığını doğruladı.
 4. Manuel izolasyon POST testinde kayıt sonrası CSRF token yenilenmesi hesaba katıldı. Form güvenliği kaldırılmadı; test yeni belge yükleyerek güncel token kullandı. Yanlış HTTP Host testi için doğru TLS SNI korunur; sadece TLS handshake reddiyle yetinilmez.
 5. Tanılamayı genişletirken log çağrı sayısı beklentisi bir ara başarısız oldu; filtreli beklenti ve şifre çözme regresyonuyla düzeltildi. Başarısız ara sürüm başarılı sayılmadı.
+6. Ek gerçek test sahte X-Forwarded-Port=4444 değerinin asset URL'lerine yansıdığını gösterdi. Bu gereksiz başlığa güven kaldırıldı. Host,port,prefix için saldırgan değerleri; HTTPS/HSTS ve gerçek URL üretimi birlikte test edilir.
 
 ## Gerçek test kanıtları
 
 | Kontrol | Son doğrulama |
 | --- | --- |
-| SQLite tam suite |212 PASS,1615 assertion,9.91 s |
-| GitHub Ubuntu CI |Gerçek uzakta çalıştı; test/linter başarılı. Son commit sonucu ayrıca kontrol edilir. |
+| SQLite tam suite |212 PASS,1615 assertion,9.82 s (son port düzeltmesi dahil) |
+| GitHub Ubuntu CI |20f9a7d: gerçek uzak test/linter PASS; test run39502669659,linter39502669676 |
 | TypeScript / ESLint / Prettier / Pint |PASS |
 | Vite production build |PASS,2027 module |
 | Composer strict validate / advisory audit |PASS /0 advisory |
@@ -52,15 +53,17 @@ Son birleşik Chromium browser turu: **3 PASS,1.1 dakika**. Ham key/token/respon
 
 ## Sınırlar ve sahipte kalan işler
 
-- Ücretsiz web15 dakika trafiksizlikte uyur; sonraki açılış yaklaşık1 dakika sürebilir. Gerçek ölçüm teslim kaydında belirtilir. Keepalive ile ücretsiz plan politikası aşılmaz.
+- Render ücretsiz web için15 dakika trafiksizlik sonrası uyku ve yaklaşık1 dakikalık uyanma belirtir. Bu oturumun16 dakikalık trafiksiz istemci ölçümünde sonraki sayfa1.149 saniyede açıldı; platformun gerçekten uyuduğu doğrulanamadı. Üçüncü taraf ziyaretleri dışlanamaz. Reklam edilen soğuk başlangıç süresi ölçülmüş gibi sunulmaz; keepalive yapılmadı.
 - DB19 Kasım 2026'da sona erer. Managed backup/PITR yok; app filesystem geçici. Bu hackathon preview ticari SLA veya kalıcı hosting taahhüdü değildir.
 - Workspace ortak kota:750 instance-hour/ay; bu hesapta5 GB bant ve500 pipeline-minute/ay. Dashboard'da kart yok; hizmet/datastore tutarları$0. Ödeme yöntemi, ücretli plan veya otomatik yükleme eklenmedi.
 - Başarılı Backboard LLM üretimi hâlâ yok; opsiyonel Advisor kapalı. Video ve Devpost'a dokunulmadı; yükleme/gönderim kullanıcıda.
 - Bağımsız penetrasyon testi, formal erişilebilirlik sertifikası, ticari kapasite/SLA ve gerçek SMTP teslimi iddia edilmez. Önceki yerel Trivy sonuçları bu yeni Render image'ının bağımsız taraması olarak sunulmaz.
--18731/18733/18734 ortamları, mevcut APP_KEY/parolalar, DB/volume'lar yeniden yapılandırılmadı. down -v,migrate:fresh,db:wipe kullanılmadı. İlgisiz Render servisi ve OAuth erişimleri değiştirilmedi.
+- 18731/18733/18734 ortamları, mevcut APP_KEY/parolalar, DB/volume'lar yeniden yapılandırılmadı. down -v,migrate:fresh,db:wipe kullanılmadı. İlgisiz Render servisi ve OAuth erişimleri değiştirilmedi.
 
 Resmî referanslar: [Render free](https://render.com/docs/free), [Laravel Docker](https://render.com/docs/deploy-php-laravel-docker), [PostgreSQL](https://render.com/docs/postgresql-creating-connecting), [Cloudflare IP başlıkları](https://developers.cloudflare.com/fundamentals/reference/http-headers/). Bu kaynaklar platform davranışını açıklar; uygulama başarısının kanıtı gerçek testlerdir.
 
 ## Son teslim kaydı
 
-Birleşik dış browser turu3/3 PASS. Yeni DB dış erişimi kapalı; gerçek bağlantı reddi SQLSTATE08006 ve internal /ready200,HSTS doğrulandı. Doğal uyku/uyanma ölçümü bekleniyor; henüz başarılı ölçüm iddiası yok.
+Son20f9a7d image'ında birleşik dış browser turu3/3 PASS,1.1 dakika. Genel geçerli IP adresleriyle sahte edge başlıkları ve sahte port/prefix dahil. Audit için aynı operatör /32 yalnızca geçici açıldı, son turdan sonra yeniden tamamen kapatıldı. Son gerçek owner bağlantısı SQLSTATE08006 ile reddedildi; internal /ready200 ve HSTS31536000 korundu. Yerel212 test/1615 assertion PASS; source/history ve yeni production sır literali taramaları324 kaynak/471 Git blob'unda0 bulgu (son belge commit'i sonrası tekrar sayılır).
+
+3e51e5e image üzerindeki16 dakikalık trafiksiz pencere:20 Ekim21:26:13.887Z–21:42:13.901Z. Başlangıç sayfası2.061 saniye; sonraki sayfa1.149 saniye. Demo parmak izi aynı;2 değişen/2 yeni reddedilen ve APPROVED korundu; TLS doğrulaması ve HSTS açık,/ready200. Platform uyku olayı gözlenmedi; bu sonuç gerçekten askıya alınmış bir instance'ın soğuk açılış kanıtı değildir. Güvenli gerçek preview yayını doğrulandı; ücretsiz planın zamanlama/ziyaret belirsizliği saklanmadı.
