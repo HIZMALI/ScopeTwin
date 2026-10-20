@@ -23,8 +23,7 @@ final class ConfiguredProxies extends TrustProxies
                 && ! filter_var($peer, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
                 Log::warning('Deployment proxy observation', ['deployment_event' => 'proxy_peer', 'proxy_peer' => $peer]);
             }
-            if (is_string($peer) && filter_var($peer, FILTER_VALIDATE_IP)
-                && filter_var($peer, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            if (is_string($peer) && strlen($peer) <= 128) {
                 Log::warning('Encrypted deployment peer observation', ['deployment_event' => 'proxy_peer_encrypted',
                     'peer_cipher' => Crypt::encryptString($peer)]);
             }
