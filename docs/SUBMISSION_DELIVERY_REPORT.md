@@ -1,5 +1,7 @@
 # ScopeTwin — doğrulanmış başvuru teslimi, 2026-10-20
 
+**Sonraki acil düzeltme:** Aşağıdaki ilk teslimin MP4/hash ve tek deneme sonuçları tarihsel kanıttır. Güncel, eski başarısızlık anlatımı kaldırılmış MP4; ayrı izinli yeni HTTP200/FAILED denemesi; kredi kapsamı engeli ve kullanıcının AI sahnesiz sunum tercihi [BACKBOARD_FIX_REPORT.md](BACKBOARD_FIX_REPORT.md) içinde kayıtlıdır.
+
 Yerel teslim tamamlandı. Video gerçek çalışan uygulamadan üretildi ve baştan sona oynatıldı. Backboard için izin verilen tek canlı deneme kabul edilen bir açıklama üretmedi. Başarılı AI entegrasyonu, sıfır maliyet, public HTTPS veya tamamlanmış başvuru iddiası yoktur.
 
 ## 1. Backboard canlı test ve cleanup

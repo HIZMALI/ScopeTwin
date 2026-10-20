@@ -2,6 +2,7 @@
 
 namespace App\Logging;
 
+use App\Support\AdvisorDiagnostics;
 use Illuminate\Log\Logger;
 use Monolog\LogRecord;
 use Throwable;
@@ -13,11 +14,12 @@ final class RedactSecrets
         $logger->pushProcessor(function (LogRecord $record): LogRecord {
             // Production exception messages/SQL bindings may contain user data. Keep type only.
             if (app()->isProduction()) {
-                return $record->with(message: 'Application event', context: [
-                    'exception_type' => isset($record->context['exception']) ? get_debug_type($record->context['exception']) : null,
-                    'advisor_status' => in_array($record->context['advisor_status'] ?? '', ['cleanup_unconfirmed', 'completed', 'invalid_response', 'authentication', 'credit', 'rate_limit', 'provider_error', 'timeout', 'transport_error'], true) ? $record->context['advisor_status'] : null,
-                    'elapsed_ms' => isset($record->context['elapsed_ms']) && is_int($record->context['elapsed_ms']) ? max(0, min(60000, $record->context['elapsed_ms'])) : null,
-                ], extra: []);
+                $context = ['exception_type' => isset($record->context['exception']) ? get_debug_type($record->context['exception']) : null];
+                if (isset($record->context['advisor_status'])) {
+                    $context = array_merge($context, ['event' => 'replay_advisor'], AdvisorDiagnostics::safe($record->context));
+                }
+
+                return $record->with(message: 'Application event', context: $context, extra: []);
             }
 
             return $record->with(message: self::clean($record->message), context: self::clean($record->context), extra: self::clean($record->extra));

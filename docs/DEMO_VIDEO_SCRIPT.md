@@ -12,14 +12,14 @@ Completed on 2026-10-20: real browser footage, English offline narration and syn
 | 2:02–2:22 | Individual Original / Baseline / Candidate comparison and frozen evidence |
 | 2:22–2:48 | Human confirmation: cancel, reopen, approve; original REVIEW and no execution preserved |
 | 2:48–3:07.705 | Actual authenticated audit JSON endpoint; no separate audit dashboard claimed |
-| 3:07.705–3:32.325 | Real Usage & Plans counts; hypothetical pricing; honest Backboard failure disclosure |
+| 3:07.705–3:32.325 | Real Usage & Plans counts; hypothetical pricing; factual usage/replay narration, no AI scene |
 | 3:32.325–3:49.981 | Product close and read-only tour |
 
 Narration source: `VIDEO_SCENES.json`. `DEMO_CAPTIONS.srt` is the final 30-cue English file, derived from measured WAV sentence durations. Full timing/evidence is in the ignored artifact directory. See `SUBMISSION_DELIVERY_REPORT.md` for actual tests, source changes, preservation and limits.
 
 ## Reproduction and safe recording
 
-The existing final video is ready; reproducing the capture creates a new synthetic workspace only on 18734. Do not rerun the paid Backboard smoke: the one authorized attempt has already been consumed. It did not produce an accepted explanation; thread cleanup was confirmed and the provider was returned to disabled. No successful AI result is shown.
+The existing final video is ready; reproducing the capture creates a new synthetic workspace only on 18734. Do not rerun the paid Backboard smoke: each separately authorized single attempt has already been consumed. The owner chose this revised video without an AI scene. It did not produce an accepted explanation; thread cleanup was confirmed and the provider was returned to disabled. No successful AI result is shown.
 
 1. Confirm the isolated built 18734 application is healthy and `BACKBOARD_ENABLED=false`. Leave 18731/18733 alone. Use the existing fixture for live-smoke work only; recording creates its own synthetic fixture.
 2. Run Windows `powershell -NoProfile -File scripts/synthesize-demo.ps1` for offline Microsoft Zira narration, then `python scripts/assemble-demo-audio.py` for measured audio/timing/SRT. No paid speech service is used.

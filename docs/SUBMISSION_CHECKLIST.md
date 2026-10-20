@@ -8,6 +8,8 @@ Official sources:
 
 ## Verified local delivery — 2026-10-20
 
+Urgent-fix follow-up: the owner chose the revised MP4 without an AI scene. Old failure narration was removed; successful AI is not claimed. Current code/test/credit-scope and HTTP200/statusFAILED evidence is in BACKBOARD_FIX_REPORT.md. Video upload and Devpost submission remain owner-owned.
+
 - [x] Actual real-browser MP4: `artifacts/submission-20261020/ScopeTwin-demo-1080p.mp4`, 3:50, 1080p/30 FPS/H.264, AAC, English narration and synchronized captions. Full decode and complete Chrome/audio playback PASS.
 - [x] Real ALLOW/REVIEW/DENY, frozen 2-changed/2-newly-denied replay, documentary approval, actual audit JSON endpoint and Usage & Plans recorded without mock responses.
 - [x] Source/history configured secret audit and current SQLite/type/lint/format checks; exact coverage and prior PostgreSQL evidence in SUBMISSION_DELIVERY_REPORT.md.

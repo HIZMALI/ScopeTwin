@@ -5,12 +5,14 @@ namespace App\Services;
 use App\Models\Organization;
 use App\Models\ReplayRun;
 use App\Models\User;
+use App\Support\AdvisorDiagnostics;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use JsonException;
 use RuntimeException;
 use Throwable;
 
@@ -19,9 +21,9 @@ final class ReplayAdvisor
 {
     private const URL = 'https://app.backboard.io/api/threads';
 
-    private const VERSION = 'aggregate-advisor-v2-bound-assistant';
+    private const VERSION = 'aggregate-advisor-v3-contract-diagnostics';
 
-    private const PROMPT = 'Explain this simulated historical policy replay in two or three short English sentences. Return only a JSON object with explanation (string) and questions (array of at most two short human review questions). Use no numerals, identifiers, personal data, URLs, HTML or markdown. Counts are displayed separately by the deterministic engine. Do not infer causes, prevented losses, savings or legal/compliance guarantees. Do not recommend authorization decisions, policy edits, approvals, rejections or transactions. Do not use tools. Describe uncertainty and suggest questions for a human reviewer only. The simulation does not execute actions.';
+    private const PROMPT = 'Explain this simulated historical policy replay briefly in English. Return only a JSON object with explanation (string) and questions (array of at most two short human review questions). Use only supplied aggregate facts; if citing numbers, copy the exact corresponding counts. Counts and policy decisions are computed separately by the deterministic engine. Do not invent causes, risk reductions, prevented losses, savings or legal/compliance guarantees. Do not include identifiers, personal data, URLs, HTML or markdown. Do not recommend authorization decisions, policy edits, approvals, rejections or transactions. Do not use tools. Describe uncertainty and suggest questions for a human reviewer only. This simulation executes no actions.';
 
     public function state(): string
     {
@@ -115,7 +117,8 @@ final class ReplayAdvisor
         $thread = null;
         $cleanup = false;
         $result = null;
-        $class = 'invalid_response';
+        $diagnostics = ['advisor_status' => 'invalid_response', 'failure_stage' => 'transport', 'validation_reason' => 'connection_failed',
+            'http_status' => null, 'cleanup_http_status' => null, 'generation_attempted' => true];
         try {
             $response = $this->client()->post(self::URL.'/messages', [
                 'content' => json_encode($summary, JSON_THROW_ON_ERROR), 'system_prompt' => self::PROMPT,
@@ -124,47 +127,71 @@ final class ReplayAdvisor
                 'memory' => 'off', 'web_search' => 'off', 'tools' => [], 'stream' => false, 'json_output' => true,
                 'image_generation' => 'off', 'video_generation' => 'off',
             ]);
-            $class = match ($response->status()) {
+            $diagnostics['http_status'] = $response->status();
+            $diagnostics['failure_stage'] = 'http';
+            $diagnostics['validation_reason'] = 'http_rejected';
+            $diagnostics['advisor_status'] = match ($response->status()) {
                 401, 403 => 'authentication', 402 => 'credit', 429 => 'rate_limit',
-                default => $response->serverError() ? 'provider_error' : 'invalid_response',
+                default => $response->successful() ? 'invalid_response' : ($response->serverError() ? 'provider_error' : 'request_error'),
             };
-            if (strlen($response->body()) <= 32768) {
-                $outer = $response->json();
-                $candidate = is_array($outer) ? ($outer['thread_id'] ?? null) : null;
-                if (is_string($candidate) && Str::isUuid($candidate)) {
-                    $thread = $candidate;
-                }
-                $assistant = $outer['assistant_id'] ?? null;
-                $bound = is_string($assistant) && hash_equals(strtolower(config('backboard.assistant_id')), strtolower($assistant));
-                if ($response->successful() && $thread && $bound && ($outer['status'] ?? '') === 'COMPLETED' && empty($outer['tool_calls'])) {
-                    $result = $this->validateOutput($outer['content'] ?? null);
-                    $class = $result ? 'completed' : 'invalid_response';
+            if (strlen($response->body()) > 32768) {
+                $diagnostics['failure_stage'] = 'envelope';
+                $diagnostics['validation_reason'] = 'response_too_large';
+            } else {
+                try {
+                    $outer = json_decode($response->body(), true, 32, JSON_THROW_ON_ERROR);
+                    $diagnostics['response_status'] = is_array($outer) ? ($outer['status'] ?? null) : null;
+                    // Capture only a UUID for best-effort cleanup, even for rejected envelopes.
+                    $candidate = is_array($outer) ? ($outer['thread_id'] ?? null) : null;
+                    if (is_string($candidate) && Str::isUuid($candidate)) {
+                        $thread = $candidate;
+                    }
+                    if ($response->successful()) {
+                        $checked = $this->parseResponse($outer, $thread, $summary);
+                        $result = $checked['advice'];
+                        $diagnostics = array_replace($diagnostics, $checked['diagnostics']);
+                    }
+                } catch (JsonException) {
+                    if ($response->successful()) {
+                        $diagnostics = array_replace($diagnostics, ['advisor_status' => 'invalid_response',
+                            'failure_stage' => 'envelope', 'validation_reason' => 'invalid_envelope_json']);
+                    }
                 }
             }
-        } catch (ConnectionException) {
-            $class = 'timeout';
+        } catch (ConnectionException $exception) {
+            // Extract a finite curl code only, never the exception message or URL/headers.
+            preg_match('/cURL error (\d+):/', $exception->getMessage(), $curl);
+            $code = (int) ($curl[1] ?? 0);
+            [$class, $reason] = match (true) {
+                $code === 28 => ['timeout', 'timed_out'],
+                in_array($code, [35, 51, 58, 60, 77, 83], true) => ['tls_error', 'tls_failed'],
+                default => ['transport_error', 'connection_failed'],
+            };
+            $diagnostics = array_replace($diagnostics, ['advisor_status' => $class, 'failure_stage' => 'transport', 'validation_reason' => $reason]);
         } catch (Throwable) {
-            $class = 'transport_error';
+            $diagnostics = array_replace($diagnostics, ['advisor_status' => 'transport_error', 'failure_stage' => 'transport', 'validation_reason' => 'connection_failed']);
         } finally {
             if ($thread !== null) {
                 try {
-                    $cleanup = $this->client(3)->delete(self::URL.'/'.$thread)->successful();
+                    $deleted = $this->client(3)->delete(self::URL.'/'.$thread);
+                    $diagnostics['cleanup_http_status'] = $deleted->status();
+                    $cleanup = $deleted->successful();
                 } catch (Throwable) {
                     $cleanup = false;
                 }
             }
-            if (! $cleanup) {
-                Log::warning('Replay advisor', ['advisor_status' => 'cleanup_unconfirmed', 'elapsed_ms' => (int) ((hrtime(true) - $started) / 1e6)]);
-            }
         }
-        Log::warning('Replay advisor', ['advisor_status' => $class, 'elapsed_ms' => (int) ((hrtime(true) - $started) / 1e6)]);
+        $diagnostics['cleanup_status'] = $cleanup ? 'confirmed' : ($thread === null ? 'no_thread' : 'failed');
+        $diagnostics['elapsed_ms'] = (int) ((hrtime(true) - $started) / 1e6);
+        $diagnostics = AdvisorDiagnostics::safe($diagnostics);
+        Log::warning('Replay advisor', $diagnostics);
         // Compare-and-set: a slow old request cannot replace a newer expired lease.
         DB::table('advisor_explanations')->where('id', $reservation['reservation'])->where('status', 'PENDING')->update([
             'status' => $result ? 'COMPLETED' : 'FAILED', 'result_json' => $result ? json_encode($result, JSON_THROW_ON_ERROR) : null,
             'cleanup_confirmed' => $cleanup, 'updated_at' => now(),
         ]);
 
-        return $base + ['status' => $result ? 'completed' : 'unavailable', 'advice' => $result, 'cleanup_confirmed' => $cleanup];
+        return $base + ['status' => $result ? 'completed' : 'unavailable', 'advice' => $result, 'cleanup_confirmed' => $cleanup, 'diagnostics' => $diagnostics];
     }
 
     private function reserve(User $actor, string $org, string $key): array
@@ -222,30 +249,39 @@ final class ReplayAdvisor
             }]);
     }
 
-    private function validateOutput(mixed $content): ?array
+    private function parseResponse(mixed $outer, ?string $thread, array $summary): array
     {
-        if (! is_string($content) || strlen($content) > 4096) {
-            return null;
+        $reject = fn (string $stage, string $reason, string $class = 'invalid_response') => ['advice' => null,
+            'diagnostics' => ['advisor_status' => $class, 'failure_stage' => $stage, 'validation_reason' => $reason]];
+        if (! is_array($outer) || array_is_list($outer)) {
+            return $reject('envelope', 'invalid_envelope');
         }
-        $data = json_decode($content, true);
-        if (! is_array($data) || count($data) !== 2 || ! is_string($data['explanation'] ?? null)
-            || ! is_array($data['questions'] ?? null) || ! array_is_list($data['questions']) || count($data['questions']) > 2) {
-            return null;
+        if (! $thread) {
+            return $reject('envelope', 'missing_thread');
         }
-        $texts = [$data['explanation'], ...$data['questions']];
-        if (strlen(implode('', $texts)) > 900 || strlen($data['explanation']) > 640
-            || ! preg_match('/^[^.?!]+[.!?]\s+[^.?!]+[.!?](?:\s+[^.?!]+[.!?])?$/D', $data['explanation'])) {
-            return null;
+        $assistant = $outer['assistant_id'] ?? null;
+        if (! is_string($assistant) || ! hash_equals(strtolower(config('backboard.assistant_id')), strtolower($assistant))) {
+            return $reject('binding', 'assistant_mismatch');
         }
-        foreach ($texts as $i => $text) {
-            if (! is_string($text) || trim($text) === '' || ($i > 0 && (strlen($text) > 120 || ! str_ends_with($text, '?')))
-                || preg_match('/[^a-zA-Z ,.;:?!\x27()\-]/', $text)
-                || preg_match('/(?:https?|www|\b(?:approve|reject|execute|publish|authorize|transfer|refund|guarantee|compliant|savings)\w*)/i', $text)
-                || str_contains($text, (string) config('backboard.api_key'))) {
-                return null;
+        if (($outer['status'] ?? null) !== 'COMPLETED') {
+            return $reject('provider', ($outer['status'] ?? null) === 'FAILED' ? 'provider_failed' : 'provider_incomplete', 'provider_error');
+        }
+        if (! empty($outer['tool_calls'])) {
+            return $reject('provider', 'tools_requested');
+        }
+        foreach (['model_provider' => 'llm_provider', 'model_name' => 'model_name'] as $field => $setting) {
+            if (isset($outer[$field]) && $outer[$field] !== config('backboard.'.$setting)) {
+                return $reject('provider', 'model_mismatch');
             }
         }
+        if (! empty($outer['retrieved_memories']) || ! empty($outer['retrieved_files']) || ! empty($outer['retrieved_files_count'])) {
+            return $reject('provider', 'unexpected_context');
+        }
+        $checked = app(ReplayAdviceOutput::class)->validate($outer['content'] ?? null, $summary);
+        if ($checked['advice'] === null) {
+            return $reject('output', $checked['reason']);
+        }
 
-        return $data;
+        return ['advice' => $checked['advice'], 'diagnostics' => ['advisor_status' => 'completed', 'failure_stage' => 'none', 'validation_reason' => 'accepted']];
     }
 }

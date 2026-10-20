@@ -1,5 +1,7 @@
 # BUILD 03 release gates
 
+Latest urgent fix: see BACKBOARD_FIX_REPORT.md. Separate one-call authorization yielded HTTP200/statusFAILED upstream; no AI success. Free credit scope is memory/RAG-only and paid LLM credit unavailable. Owner selected the revised verified MP4 without an AI scene; no further generation/purchase authorized. Prior dated build rows are historical.
+
 **Local release candidate only. Remote state: NOT DEPLOYED.**
 
 Latest delivery, 2026-10-20: the 3:50 real-browser MP4 is complete and verified (1080p/30 FPS/H.264/AAC/English narration and captions). One authorized live Backboard attempt failed output acceptance; cleanup confirmed, flag restored false. The owner will upload video and submit Devpost. See SUBMISSION_DELIVERY_REPORT.md; older build/test rows below are dated historical evidence, not current success claims. A checked local gate is not evidence of a public service, submitted project or completed video. Final command counts/timestamps and any exceptions are in BUILD03_TECHNICAL_NOTES.md.

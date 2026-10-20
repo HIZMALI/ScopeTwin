@@ -119,9 +119,9 @@ Our three evaluations, replay, and approval are visible here. Pricing is a propo
 with no checkout or charges.
 
 27
-00:03:22,472 --> 00:03:31,325
-A single authorized Backboard test did not yield an accepted explanation, so no
-artificial intelligence success is shown in this demo.
+00:03:22,472 --> 00:03:28,950
+Every usage count comes from workspace records, and replay never executes an external
+action.
 
 28
 00:03:33,325 --> 00:03:38,914

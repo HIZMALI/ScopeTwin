@@ -15,6 +15,8 @@ final class ReplayAdviceController extends Controller
             'disabled', 'not_configured' => 503, default => 502,
         };
 
+        unset($result['diagnostics']);
+
         return response()->json($result, $status)->header('Cache-Control', 'no-store');
     }
 }

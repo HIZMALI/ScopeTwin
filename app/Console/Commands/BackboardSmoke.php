@@ -6,7 +6,9 @@ use App\Models\Organization;
 use App\Models\ReplayRun;
 use App\Models\User;
 use App\Services\ReplayAdvisor;
+use App\Support\AdvisorDiagnostics;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 final class BackboardSmoke extends Command
@@ -38,13 +40,18 @@ final class BackboardSmoke extends Command
             if ($advisor->summary($run) !== $expected) {
                 throw new \RuntimeException('Unexpected fixture.');
             }
+            $before = $this->domainFingerprint($org->id);
             $result = $advisor->advise(User::findOrFail($run->created_by_user_id), $run->id);
+            $unchanged = hash_equals($before, $this->domainFingerprint($org->id));
             if ($result['cached']) {
                 $this->line('LIVE_NOT_TESTED: cached result; no new call.');
 
                 return self::FAILURE;
             }
-            $success = $result['status'] === 'completed';
+            $diagnostics = AdvisorDiagnostics::safe($result['diagnostics'] ?? []);
+            $this->line(json_encode(['diagnostics' => $diagnostics, 'deterministic_unchanged' => $unchanged], JSON_THROW_ON_ERROR));
+            $success = $result['status'] === 'completed' && ($result['cleanup_confirmed'] ?? false) && $unchanged
+                && $diagnostics['generation_attempted'] && $diagnostics['validation_reason'] === 'accepted';
             $this->line(($success ? 'SUCCESS' : 'FAIL').': cleanup '.(($result['cleanup_confirmed'] ?? false) ? 'confirmed' : 'unconfirmed'));
 
             return $success ? self::SUCCESS : self::FAILURE;
@@ -53,5 +60,16 @@ final class BackboardSmoke extends Command
 
             return self::FAILURE;
         }
+    }
+
+    private function domainFingerprint(string $organization): string
+    {
+        $hashes = [];
+        foreach (['agents', 'agent_api_keys', 'policies', 'policy_versions', 'action_requests', 'policy_decisions',
+            'audit_events', 'approval_requests', 'replay_runs', 'replay_results'] as $table) {
+            $hashes[$table] = hash('sha256', DB::table($table)->where('organization_id', $organization)->orderBy('id')->get()->toJson());
+        }
+
+        return hash('sha256', json_encode($hashes, JSON_THROW_ON_ERROR));
     }
 }

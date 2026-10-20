@@ -119,7 +119,7 @@ class ReplayAdvisorTest extends TestCase
 
     public static function failures(): array
     {
-        return [[401], [402], [429], [500], ['timeout'], ['json'], ['long'], ['html'], ['digits'], ['tools'], ['thread'], ['outer'], ['key'], ['questions'], ['assistant_missing'], ['assistant_mismatch']];
+        return [[401], [402], [429], [500], ['timeout'], ['json'], ['long'], ['html'], ['wrong_counts'], ['tools'], ['thread'], ['outer'], ['key'], ['questions'], ['assistant_missing'], ['assistant_mismatch']];
     }
 
     #[DataProvider('failures')]
@@ -128,12 +128,12 @@ class ReplayAdvisorTest extends TestCase
         Log::spy();
         $output = $this->valid();
         if ($failure === 'long') {
-            $output['explanation'] = str_repeat('a', 950).'. Another sentence.';
+            $output['explanation'] = str_repeat('a', 1700).'. Another sentence.';
         }
         if ($failure === 'html') {
             $output['explanation'] = '<script>alert()</script>. Another sentence.';
         }
-        if ($failure === 'digits') {
+        if ($failure === 'wrong_counts') {
             $output['explanation'] = 'There are 3 changes. Another sentence.';
         }
         if ($failure === 'key') {
@@ -172,7 +172,7 @@ class ReplayAdvisorTest extends TestCase
         Http::assertSentCount($calls);
         $this->assertSame($before, $this->state());
         Log::shouldHaveReceived('warning')->withArgs(function ($message, $context) {
-            return $message === 'Replay advisor' && array_keys($context) === ['advisor_status', 'elapsed_ms'] && is_int($context['elapsed_ms']);
+            return $message === 'Replay advisor' && isset($context['failure_stage'], $context['validation_reason']) && is_int($context['elapsed_ms']) && ! isset($context['content'], $context['assistant_id'], $context['api_key']);
         });
     }
 
@@ -299,7 +299,7 @@ class ReplayAdvisorTest extends TestCase
             }
         }
         Log::shouldHaveReceived('warning')->once()->withArgs(function ($message, $context) {
-            return $message === 'Replay advisor' && array_keys($context) === ['advisor_status', 'elapsed_ms']
+            return $message === 'Replay advisor' && isset($context['failure_stage'], $context['validation_reason'])
                 && $context['advisor_status'] === 'completed' && is_int($context['elapsed_ms']);
         });
         $this->assertSame($before, $this->state());
