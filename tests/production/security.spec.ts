@@ -30,9 +30,13 @@ test('public HTTPS boundary: redirects, certificate, private paths, host and una
         probe.end();
     });
     expect([400, 403, 404, 421]).toContain(wrongHost);
-    const forwarded = await request.get('/demo', { headers: { 'X-Forwarded-Host': 'untrusted.example.test', 'X-Forwarded-Proto': 'http' } });
+    const forwarded = await request.get('/demo', { headers: { 'X-Forwarded-Host': 'untrusted.example.test', 'X-Forwarded-Proto': 'http',
+        'X-Forwarded-Port': '4444', 'X-Forwarded-Prefix': '/spoofed' } });
     expect(forwarded.status()).toBe(200);
     expect(await forwarded.text()).not.toContain('untrusted.example.test');
+    expect(await forwarded.text()).not.toContain(':4444');
+    expect(await forwarded.text()).not.toContain('/spoofed');
+    expect(forwarded.headers()['strict-transport-security']).toBe('max-age=31536000');
     const registration = await request.get('/register');
     expect(await registration.text()).not.toContain('Forgot your password?');
     const privateApi = await request.post('/api/v1/agent/actions/evaluate', { data: { action_name: 'unknown.action' } });
@@ -59,10 +63,12 @@ test('public HTTPS boundary: redirects, certificate, private paths, host and una
     }
     expect(registrationStatuses.every(status => status === 422 || status === 429), JSON.stringify(registrationStatuses)).toBe(true);
     expect(registrationStatuses).toContain(429);
-    const edgeSpoof = await page.request.post('/register', {
-        headers: { 'X-CSRF-TOKEN': csrf!, Accept: 'application/json', 'CF-Connecting-IP': '198.51.100.99',
-            'True-Client-IP': '198.51.100.99', 'X-Real-IP': '198.51.100.99', 'X-Forwarded-For': '198.51.100.99' },
-        data: {},
-    });
-    expect([403, 429]).toContain(edgeSpoof.status()); // Edge rejection or the same exhausted app limit.
+    for (const address of ['198.51.100.99', '1.1.1.1', '8.8.8.8']) {
+        const edgeSpoof = await page.request.post('/register', {
+            headers: { 'X-CSRF-TOKEN': csrf!, Accept: 'application/json', 'CF-Connecting-IP': address,
+                'True-Client-IP': address, 'X-Real-IP': address, 'X-Forwarded-For': address },
+            data: {},
+        });
+        expect([403, 429]).toContain(edgeSpoof.status()); // Edge rejection or the same exhausted app limit.
+    }
 });

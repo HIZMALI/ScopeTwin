@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 final class ConfiguredProxies extends TrustProxies
 {
     // The canonical Host comes from APP_URL/TrustHosts, never a forwarded host/prefix.
-    protected $headers = Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO | Request::HEADER_X_FORWARDED_PORT;
+    protected $headers = Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO;
 
     public function handle(Request $request, Closure $next)
     {

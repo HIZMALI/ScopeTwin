@@ -34,10 +34,11 @@ class ManagedHostingTest extends TestCase
         config(['security.observe_proxy' => false, 'security.hsts' => true, 'security.trusted_proxies' => ['::1']]);
         $request = Request::create('http://scope.example/ready', 'GET', server: [
             'REMOTE_ADDR' => '::1', 'HTTP_X_FORWARDED_PROTO' => 'https', 'HTTP_X_FORWARDED_HOST' => 'attacker.example',
+            'HTTP_X_FORWARDED_PORT' => '4444', 'HTTP_X_FORWARDED_PREFIX' => '/spoofed',
         ]);
         try {
-            $response = (new ConfiguredProxies)->handle($request, fn ($request) => (new SecurityHeaders)->handle($request, fn () => response($request->getHost())));
-            $this->assertSame('scope.example', $response->getContent());
+            $response = (new ConfiguredProxies)->handle($request, fn ($request) => (new SecurityHeaders)->handle($request, fn () => response($request->getSchemeAndHttpHost())));
+            $this->assertSame('https://scope.example', $response->getContent());
             $this->assertSame('max-age=31536000', $response->headers->get('Strict-Transport-Security'));
         } finally {
             Request::setTrustedProxies([], 0);
