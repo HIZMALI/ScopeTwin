@@ -17,6 +17,7 @@ class ManagedHostingTest extends TestCase
         $request = fn () => Request::create('http://scope.example/ready', 'GET', server: [
             'REMOTE_ADDR' => '10.23.4.5', 'HTTP_X_FORWARDED_PROTO' => 'https',
             'HTTP_X_FORWARDED_FOR' => '198.51.100.3', 'HTTP_AUTHORIZATION' => 'Bearer private',
+            'HTTP_X_FORWARDED_HOST' => 'attacker.example',
         ]);
         $next = fn ($request) => response()->json(['secure' => $request->isSecure(), 'ip' => $request->ip()]);
         try {
@@ -25,7 +26,9 @@ class ManagedHostingTest extends TestCase
             config(['security.trusted_proxies' => ['10.23.4.5']]);
             $second = (new ConfiguredProxies)->handle($request(), $next)->getData(true);
             $this->assertSame(['secure' => true, 'ip' => '198.51.100.3'], $second);
-            Log::shouldHaveReceived('warning')->twice()->with('Deployment proxy observation', ['deployment_event' => 'proxy_peer', 'proxy_peer' => '10.23.4.5']);
+            $host = (new ConfiguredProxies)->handle($request(), fn ($request) => response($request->getHost()))->getContent();
+            $this->assertSame('scope.example', $host);
+            Log::shouldHaveReceived('warning')->times(3)->with('Deployment proxy observation', ['deployment_event' => 'proxy_peer', 'proxy_peer' => '10.23.4.5']);
         } finally {
             Request::setTrustedProxies([], 0);
         }

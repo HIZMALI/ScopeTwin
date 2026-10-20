@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Vite;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -13,6 +14,12 @@ final class SecurityHeaders
     {
         Vite::useCspNonce();
         $response = $next($request);
+        if (app()->isProduction() && config('security.observe_proxy') && $request->is('ready')) {
+            Log::warning('Deployment TLS observation', ['deployment_event' => 'tls_state',
+                'secure' => $request->isSecure(), 'hsts_configured' => (bool) config('security.hsts'),
+                'proxy_trusted' => $request->isFromTrustedProxy(),
+                'forwarded_https' => $request->headers->get('x-forwarded-proto') === 'https']);
+        }
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');

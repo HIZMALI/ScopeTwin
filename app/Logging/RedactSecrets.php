@@ -18,6 +18,12 @@ final class RedactSecrets
                 if (isset($record->context['advisor_status'])) {
                     $context = array_merge($context, ['event' => 'replay_advisor'], AdvisorDiagnostics::safe($record->context));
                 }
+                if (($record->context['deployment_event'] ?? null) === 'tls_state') {
+                    $context['deployment_event'] = 'tls_state';
+                    foreach (['secure', 'hsts_configured', 'proxy_trusted', 'forwarded_https'] as $field) {
+                        $context[$field] = ($record->context[$field] ?? null) === true;
+                    }
+                }
                 $peer = $record->context['proxy_peer'] ?? null;
                 if (($record->context['deployment_event'] ?? null) === 'proxy_peer' && is_string($peer)
                     && filter_var($peer, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
