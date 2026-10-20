@@ -4,9 +4,9 @@
 
 ![ScopeTwin public landing — actual local browser capture](docs/images/landing-desktop.png)
 
-BUILD 03 adds a stateless read-only judge tour, production-mode Docker packaging, operational guardrails, accessibility repairs and a submission package to the working Laravel monolith. **Remote status: NOT DEPLOYED.** Public GitHub and video URLs have not been created or uploaded.
+Live hackathon demo: **[Open ScopeTwin](https://scopetwin-hizmali.onrender.com)** · **[Account-free judge tour](https://scopetwin-hizmali.onrender.com/demo)** · **[Replay comparison](https://scopetwin-hizmali.onrender.com/demo/replay)**. Public source: [HIZMALI/ScopeTwin](https://github.com/HIZMALI/ScopeTwin). The demo uses a fresh, isolated Render PostgreSQL database containing only synthetic data. Free hosting can sleep after 15 minutes; its first response can take about a minute. The free database expires on **November 19, 2026**; this is a time-limited hackathon preview, without a production availability or backup guarantee.
 
-**ScopeTwin never issues refunds, executes tools, calls an LLM, or transfers money.** Approval records a human decision only; it does not grant an execution token or change an original REVIEW result. Proposed pricing has no checkout or charges.
+**ScopeTwin never issues refunds, executes tools, or transfers money.** The optional Backboard AI Replay Advisor is **disabled** in the public demo; no successful live LLM generation is claimed. Approval records a human decision only; it does not grant an execution token or change an original REVIEW result. Proposed pricing has no checkout or charges.
 
 Release entry points: [technical evidence](docs/BUILD03_TECHNICAL_NOTES.md), [deployment](docs/DEPLOYMENT.md), [operations runbook](docs/OPERATIONS_RUNBOOK.md), [judge walkthrough](docs/DEMO_WALKTHROUGH.md), [go-live gates](docs/GO_LIVE_CHECKLIST.md), [Devpost draft](docs/DEVPOST_SUBMISSION.md), [video storyboard](docs/DEMO_VIDEO_SCRIPT.md). Build 02's detailed domain design remains in [its technical notes](docs/BUILD02_TECHNICAL_NOTES.md).
 
@@ -16,7 +16,7 @@ Release entry points: [technical evidence](docs/BUILD03_TECHNICAL_NOTES.md), [de
 ./scripts/rehearse-production.ps1
 ```
 
-Open [the isolated local demo](http://127.0.0.1:18733/demo). It reads **persisted synthetic artifacts** created by the real evaluation/replay/approval services in a new disposable PostgreSQL service/database. It has no account requirement, raw token or write controls. Three stored requests show ALLOW/REVIEW/DENY; a frozen candidate produces **2 changed / 2 newly denied**, and an APPROVED documentary review preserves the original REVIEW. Changed labels are not claimed as financial savings.
+For local rehearsal, open [the isolated local demo](http://127.0.0.1:18733/demo). For judges, use the [live public tour](https://scopetwin-hizmali.onrender.com/demo). It reads **persisted synthetic artifacts** created by the real evaluation/replay/approval services in a new disposable PostgreSQL service/database. It has no account requirement, raw token or write controls. Three stored requests show ALLOW/REVIEW/DENY; a frozen candidate produces **2 changed / 2 newly denied**, and an APPROVED documentary review preserves the original REVIEW. Changed labels are not claimed as financial savings.
 
 ![Actual stored synthetic three-way replay](docs/images/demo-desktop.png)
 
@@ -35,7 +35,7 @@ Open [the local app](http://127.0.0.1:18731/register) and register your own acco
 
 For manual setup: copy `.env.example` to `.env`, set a random `DB_PASSWORD`, run `composer install`, `php artisan key:generate`, `docker compose up -d --wait`, `php artisan migrate`, `npm ci`, `npm run build`, then start the server above. Do not regenerate `APP_KEY` on an existing installation: it invalidates agent key hashes and sessions.
 
-The database queue is configured but no worker is needed for synchronous evaluations. Password recovery is honestly unavailable until an actual delivery transport and `PASSWORD_RECOVERY_ENABLED=true` are configured. Array/log mailers never count as delivery. Production packaging is included; no remote deployment has occurred.
+The database queue is configured but no worker is needed for synchronous evaluations. Password recovery is honestly unavailable until an actual delivery transport and `PASSWORD_RECOVERY_ENABLED=true` are configured. Array/log mailers never count as delivery. The public preview uses the same production Dockerfile with a new remote APP_KEY and a separate runtime database role. Local environments are independent. Email delivery and password recovery are disabled on the public preview.
 
 For an existing Build 01 installation, keep `.env` and run `php artisan migrate --no-interaction` followed by `npm run build`. Build 02's additive migration creates only `replay_runs`, `replay_results`, and `approval_requests`; it does not reset data or backfill historical REVIEW decisions.
 
@@ -223,7 +223,7 @@ npm audit
 php scripts/verify-preservation.php verify build03
 ```
 
-The preservation guard is for this implementation host's ignored baseline, not a portable fixture. New installations may capture their own baseline explicitly. All PostgreSQL regression rollbacks remain confined to `scopetwin_test`; browser regressions own 18732 / `scopetwin_browser_test`. Release tests use built assets and a different PostgreSQL service at 18733. Full actual counts, timestamps, container scan exceptions and noncoverage are maintained in the [release evidence](docs/BUILD03_TECHNICAL_NOTES.md). GitHub-hosted CI has not run remotely.
+The preservation guard is for this implementation host's ignored baseline, not a portable fixture. New installations may capture their own baseline explicitly. All PostgreSQL regression rollbacks remain confined to `scopetwin_test`; browser regressions own 18732 / `scopetwin_browser_test`. Release tests use built assets and a different PostgreSQL service at 18733. Full actual counts, timestamps, container scan exceptions and noncoverage are maintained in the [release evidence](docs/BUILD03_TECHNICAL_NOTES.md). GitHub-hosted Ubuntu CI runs against public main. The live HTTPS browser suite is opt-in (`PRODUCTION_TEST_URL=https://scopetwin-hizmali.onrender.com npx playwright test --config=playwright.production.config.ts`) and creates separate synthetic remote workspaces; it never uses local fixture databases. See the current [public release report](docs/PUBLIC_RELEASE_REPORT.md) for actual results and remaining limits.
 
 ## Component ownership
 
@@ -241,7 +241,7 @@ The preservation guard is for this implementation host's ignored baseline, not a
 
 - Replay is synchronous and capped at 500 historical requests; each policy manifest is capped at 1 MiB. It measures decision-effect changes, not unverified false-positive/false-negative rates. Candidate drafts are frozen and explicitly marked as drafts, never fabricated published versions.
 - Invalid pending approvals are displayed as EXPIRED/STALE on read without writes; a resolution attempt persists the terminal invalid state and returns 409. No cron is required to block them. Start a fresh evaluation with a new idempotency key when policy, time or credential context is invalid.
-- No external refund connector, payment gateway, usage billing, production deployment or remote push. No action executor exists. The optional Backboard explanation adapter is disabled: the separately authorized live attempts did not produce an accepted explanation; thread cleanup was confirmed. The latest returned upstream HTTP200/statusFAILED, and this account has no paid LLM credit. See [current diagnosis](docs/BACKBOARD_FIX_REPORT.md).
+- No external refund connector, payment gateway or usage billing. The public GitHub repository and isolated HTTPS demo are published; commercial production durability is outside this free preview. No action executor exists. The optional Backboard explanation adapter is disabled: the separately authorized live attempts did not produce an accepted explanation; thread cleanup was confirmed. The latest returned upstream HTTP200/statusFAILED, and this account has no paid LLM credit. See [current diagnosis](docs/BACKBOARD_FIX_REPORT.md).
 - Application-level scope and snapshot checks are not a substitute for operational controls over direct database access. Immutable snapshots are enforced by application code; no database immutability trigger is installed.
 - BUILD 03 adds Chromium/Firefox/WebKit production-mode journeys and axe checks. Windows WebKit link Tab traversal is a documented runtime limitation; programmatic skip focus and dialog behavior are checked there, with actual link Tab traversal in Chromium/Firefox. This is not an accessibility certification or independent security audit.
 - Hypothetical pricing, not validated or charged: Free sandbox; Team $79/month; Business $299/month. The usage/pricing UI is implemented; paid entitlements, quotas, billing and subscriptions are not.
@@ -256,7 +256,7 @@ For a separate production rehearsal run `./scripts/rehearse-production.ps1 -Buil
 
 ## License and provenance
 
-Original ScopeTwin contributions use [MIT](LICENSE), consistent with the existing Composer license declaration. The official Laravel React starter supplied the starting framework/authentication UI; all third-party code retains its upstream notices. See [third-party/provenance notes](docs/THIRD_PARTY_NOTICES.md). No paid artwork, proprietary template, real customer dataset, compliance certification or organizer endorsement is claimed. Public launch remains gated by explicit host/DNS/push/deployment permission and the security/release checklist.
+Original ScopeTwin contributions use [MIT](LICENSE), consistent with the existing Composer license declaration. The official Laravel React starter supplied the starting framework/authentication UI; all third-party code retains its upstream notices. See [third-party/provenance notes](docs/THIRD_PARTY_NOTICES.md). No paid artwork, proprietary template, real customer dataset, compliance certification or organizer endorsement is claimed. The owner explicitly authorized the public GitHub repository and free Render preview. No custom DNS, payment service, video upload or Devpost submission is performed by the application.
 
 ## Verified local submission video — 2026-10-20
 

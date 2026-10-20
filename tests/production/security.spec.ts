@@ -44,17 +44,25 @@ test('public HTTPS boundary: redirects, certificate, private paths, host and una
     // CSP nonces differ per request; compare rendered deterministic report data separately in browser tests.
     expect(demoBefore.status()).toBe(200);
     expect(demoAfter.status()).toBe(200);
+    await page.goto('/forgot-password');
+    await expect(page.getByRole('status')).toContainText('Password recovery is unavailable');
+    await expect(page.getByRole('button', { name: 'Email password reset link' })).toHaveCount(0);
     await page.goto('/register');
     const csrf = await page.locator('meta[name="csrf-token"]').getAttribute('content');
     const registrationStatuses = [];
     for (let i = 1; i <= 6; i++) {
         const response = await page.request.post('/register', {
-            headers: { 'X-CSRF-TOKEN': csrf!, Accept: 'application/json', 'X-Forwarded-For': `198.51.100.${i}`,
-                'CF-Connecting-IP': `198.51.100.${i}`, 'True-Client-IP': `198.51.100.${i}`, 'X-Real-IP': `198.51.100.${i}` },
+            headers: { 'X-CSRF-TOKEN': csrf!, Accept: 'application/json', 'X-Forwarded-For': `198.51.100.${i}` },
             data: {}, // Invalid input creates no users; all six attempts must share the real rate limit.
         });
         registrationStatuses.push(response.status());
     }
-    expect(registrationStatuses.every(status => status === 422 || status === 429)).toBe(true);
+    expect(registrationStatuses.every(status => status === 422 || status === 429), JSON.stringify(registrationStatuses)).toBe(true);
     expect(registrationStatuses).toContain(429);
+    const edgeSpoof = await page.request.post('/register', {
+        headers: { 'X-CSRF-TOKEN': csrf!, Accept: 'application/json', 'CF-Connecting-IP': '198.51.100.99',
+            'True-Client-IP': '198.51.100.99', 'X-Real-IP': '198.51.100.99', 'X-Forwarded-For': '198.51.100.99' },
+        data: {},
+    });
+    expect([403, 429]).toContain(edgeSpoof.status()); // Edge rejection or the same exhausted app limit.
 });

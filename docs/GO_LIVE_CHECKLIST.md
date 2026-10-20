@@ -1,4 +1,23 @@
-# BUILD 03 release gates
+# Public release gates — 2026-10-21
+
+Current public source: [HIZMALI/ScopeTwin](https://github.com/HIZMALI/ScopeTwin). Live HTTPS: [ScopeTwin](https://scopetwin-hizmali.onrender.com), [account-free demo](https://scopetwin-hizmali.onrender.com/demo). The owner explicitly authorized this free Render release. [Current technical evidence](PUBLIC_RELEASE_REPORT.md) supersedes the dated historical BUILD03 sections below.
+
+- [x] Public repository, no force push, actual remote CI test/linter success.
+- [x] New Free PostgreSQL18, forward migrations, guarded real synthetic demo, DML-only web role, new private secrets.
+- [x] Actual external registration/login,agent,policy publication,ALLOW/REVIEW/DENY,replay2/2,approval,audit,usage,tenant isolation.
+- [x] External Chromium desktop/mobile,axe,keyboard,CSP; combined3/3 PASS.
+- [x] Verified HTTPS,redirect,HSTS,cookies,Host/private path/CSRF/demo boundaries,spoof-resistant rate limit.
+- [x] External DB access closed; actual owner connection rejected, internal app healthy.
+- [x] Backboard and SMTP/recovery disabled; no generation/purchase/video/Devpost action.
+- [ ] Natural free-tier sleep/wake timing — recorded separately in the current release report.
+- [ ] Owner video upload,eligibility review,Devpost submission.
+- [ ] Long-term persistence/SLA/backup/SMTP require a separately approved operating plan. Free DB expires November19,2026.
+
+The sections below are preserved as historical BUILD03 evidence; their old NOT DEPLOYED/NOT AUTHORIZED labels are not the current remote state.
+
+---
+
+# Historical BUILD 03 release gates
 
 Latest urgent fix: see BACKBOARD_FIX_REPORT.md. Separate one-call authorization yielded HTTP200/statusFAILED upstream; no AI success. Free credit scope is memory/RAG-only and paid LLM credit unavailable. Owner selected the revised verified MP4 without an AI scene; no further generation/purchase authorized. Prior dated build rows are historical.
 

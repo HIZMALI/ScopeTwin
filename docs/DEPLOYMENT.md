@@ -1,6 +1,6 @@
 # ScopeTwin release deployment
 
-Status: **local production-mode rehearsal only; NOT DEPLOYED remotely**. No public host, domain, registry, DNS change or purchase is authorized by this document.
+Current host: **[ScopeTwin free Render preview](https://scopetwin-hizmali.onrender.com)** with a separate new PostgreSQL18 database. Public source: [HIZMALI/ScopeTwin](https://github.com/HIZMALI/ScopeTwin). The owner explicitly authorized this public repository and free deployment. See [current verification and limits](PUBLIC_RELEASE_REPORT.md). The Compose instructions below remain a separate self-hosting option.
 
 ## Release design
 
@@ -87,3 +87,20 @@ First setup requires an empty database. The command also requires the dedicated 
 For a real TLS reverse proxy, review both [FrankenPHP proxy configuration](https://frankenphp.dev/docs/production/#running-behind-a-reverse-proxy) and Laravel's explicit trusted proxies. Configure Caddy's `servers { trusted_proxies static <actual addresses> }` only for the approved proxy path, and verify spoofing/secure detection externally; no wildcard trust is shipped. The checked-in Caddyfile keeps internal automatic HTTPS/admin off, serves only public/ and blocks internal/dot paths. Caddy's configuration/data directories are writable by the non-root user; internal TLS certificates are not generated in this setup.
 
 References: [Laravel 13 deployment](https://laravel.com/docs/13.x/deployment), [FrankenPHP Docker](https://frankenphp.dev/docs/docker/), reviewed 2026-10-18. This document is a deployment procedure, not evidence that a remote deployment happened.
+
+
+## Actual Render preview - 2026-10-21
+
+The existing Dockerfile builds from public Git main. Free Web Service, Oregon,512 MB/0.1 CPU,PORT8080,health `/ready`, managed onrender.com HTTPS. Public repository updates require Manual Deploy / Deploy latest commit; no additional OAuth grant to unrelated repositories. No paid plan, card, custom domain, DNS change or automatic billing was added.
+
+A new Free PostgreSQL18 service holds only the new `scopetwin_public_demo` database,1 GB,autoscaling disabled. New random APP_KEY and runtime password remain private. Local18731/18733/18734 data, secrets, volumes and applications were not reconfigured or copied. The migration owner is absent from the web environment. `scopetwin_runtime` has DML/sequence privileges, no SUPERUSER,CREATEDB,CREATEROLE,schema CREATE or ownership. Forward migrations and guarded `scope:judge-demo --confirm-disposable` ran only on this new database; DEMO_ALLOW_SETUP=false afterward.
+
+The free plan lacks SSH/shell/pre-deploy jobs. Provisioning therefore uses a private operator connection with sslmode=verify-full and trusted CA. The web service uses the internal DB hostname with DB_SSLMODE=require (Render internal certificates do not support verify-full). Close resource-specific external DB access after provisioning; a future operator migration may temporarily allow only its /32 and then close it. Do not change workspace or unrelated resource rules. Keep APP_KEY stable after launch.
+
+APP_ENV=production,APP_DEBUG=false; database sessions/cache; encrypted Secure/HttpOnly/SameSite=Lax session; canonical HTTPS APP_URL; strict APP_URL host; HSTS; forwarded host/prefix ignored. Encrypted peer diagnosis proved external requests arrive via IPv6 loopback `::1`, whereas health probes use separate private IPv4. TRUSTED_PROXIES contains only `::1`, no wildcard/broad network. RELEASE_OBSERVE_PROXY=false after diagnosis. On this verified Render/Cloudflare path, TRUSTED_CLIENT_IP_HEADER=CF-Connecting-IP normalizes only the edge-overwritten single client IP from a trusted peer. Raw visitor XFF chains cannot choose rate-limit identities; missing/invalid edge IP falls back to the actual peer rather than visitor XFF. This opt-in defaults empty elsewhere; do not enable it behind an unverified proxy. Revalidate after platform/topology changes. Optional diagnosis logs only finite TLS flags and encrypted peers, no request bodies, raw public addresses, keys or forwarded header values.
+
+BACKBOARD_ENABLED=false; no Backboard credential is installed remotely. MAIL_MAILER=array,PASSWORD_RECOVERY_ENABLED=false; email delivery is not claimed. PostgreSQL persists sessions/domain data across app recreation. The web filesystem is ephemeral; there is no user file-upload workflow requiring a persistent disk. Logs use stderr and existing production redaction.
+
+Free constraints: sleep after15 idle minutes, wake-up about1 minute;750 instance-hours/workspace/month. This account shows5 GB bandwidth and500 build minutes/month, shared across services. Dashboard: no card on file, services/datastores currently$0. Limits may suspend services/builds. Free PostgreSQL expires **November19,2026**, without managed backups/PITR. This is a time-limited hackathon preview, not a commercial production SLA. Export privately before expiry if it must survive. Paid upgrades require separate owner approval; no dumps or credentials in Git.
+
+Reviewed official references: [Laravel Docker](https://render.com/docs/deploy-php-laravel-docker), [free constraints](https://render.com/docs/free), [PostgreSQL](https://render.com/docs/postgresql-creating-connecting), [inbound access](https://render.com/docs/inbound-ip-rules). Actual external verification is recorded separately in the release report.
