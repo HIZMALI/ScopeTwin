@@ -11,6 +11,8 @@ Laravel 13 with first-party React + Inertia TypeScript starter, PostgreSQL, Vite
 - `ReplayService` calls the SAME evaluator against snapshot versions but persists only optional replay result metadata, never executes business tools.
 - An optional `AIExplanationProvider` adapter may use Backboard for advisory summaries later; unavailable API must not break core product. LLM output never controls ALLOW/REVIEW/DENY.
 
+Current implementation: `ReplayAdvisor` is the optional server-only Backboard sidecar, pinned to an explicit assistant/provider/model with aggregate-only input, hard call quotas, safe output validation and best-effort thread cleanup. The single owner-authorized live attempt on2026-10-20 did not yield accepted advice; the flag was restored tofalse and deterministic workflows remained available. No AI response controls authorization. See BACKBOARD_INTEGRATION.md for exact boundaries and evidence.
+
 ## Schema — logical (names may adapt to starter)
 - organizations: id uuid, name, slug, created_at
 - organization_memberships: organization_id, user_id, role (OWNER|ADMIN|VIEWER), unique org/user

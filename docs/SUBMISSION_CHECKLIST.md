@@ -6,6 +6,15 @@ Official sources:
 - https://galuxium-nexus-v2-29411.devpost.com/updates
 - https://galuxium-nexus-v2-29411.devpost.com/details/dates
 
+## Verified local delivery — 2026-10-20
+
+- [x] Actual real-browser MP4: `artifacts/submission-20261020/ScopeTwin-demo-1080p.mp4`, 3:50, 1080p/30 FPS/H.264, AAC, English narration and synchronized captions. Full decode and complete Chrome/audio playback PASS.
+- [x] Real ALLOW/REVIEW/DENY, frozen 2-changed/2-newly-denied replay, documentary approval, actual audit JSON endpoint and Usage & Plans recorded without mock responses.
+- [x] Source/history configured secret audit and current SQLite/type/lint/format checks; exact coverage and prior PostgreSQL evidence in SUBMISSION_DELIVERY_REPORT.md.
+- [x] English Devpost material updated honestly: one authorized Backboard attempt failed to yield an accepted explanation; cleanup confirmed and flag restored false. No AI success or $0 cost claim.
+- [ ] Owner uploads MP4 and verifies public playback, then fills `[VIDEO_URL]`.
+- [ ] Owner fills actual GitHub/live-demo links if available and submits Devpost. Repository/hosting targets were not supplied; no push or deployment performed.
+
 ## Organizer compliance (verify independently)
 - [ ] Register and join hackathon on Devpost.
 - [ ] Confirm team size and any late entry restrictions with organizer.

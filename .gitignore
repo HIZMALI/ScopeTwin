@@ -33,3 +33,4 @@ yarn-error.log
 /storage/*.tar
 /storage/screenshots
 /database/*.sqlite*
+/artifacts/

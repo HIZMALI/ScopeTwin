@@ -1,44 +1,137 @@
 1
-00:00:00,000 --> 00:00:20,000
-Before changing an agent policy, see which recorded requests would change.
-ScopeTwin: evaluate, replay, review.
+00:00:01,000 --> 00:00:07,314
+An agent asks to issue a refund. A policy decides whether that request is allowed.
 
 2
-00:00:20,000 --> 00:00:40,000
-Published typed rules. Integer cents. Default deny.
-DENY takes precedence over REVIEW, then ALLOW.
+00:00:07,564 --> 00:00:13,292
+But before changing the policy, how do we know which recorded requests would change?
 
 3
-00:00:40,000 --> 00:01:00,000
-Real HTTP results: $120 ALLOW, $2,400 REVIEW, unknown action DENY.
-Synthetic data. No refund executed.
+00:00:13,542 --> 00:00:20,710
+ScopeTwin makes that impact visible, with deterministic evaluation, frozen replay, and
+human review.
 
 4
-00:01:00,000 --> 00:01:25,000
-Propose a stricter $100 refund boundary.
-Preview impact without publishing the draft.
+00:00:23,000 --> 00:00:29,128
+This is the real application, running locally with synthetic data in an isolated
+workspace.
 
 5
-00:01:25,000 --> 00:01:55,000
-Recorded / baseline / candidate.
-Three requests. Two changed labels. Two newly denied.
+00:00:29,378 --> 00:00:35,302
+The published rules allow refunds up to five hundred dollars and require review above
+that amount.
 
 6
-00:01:55,000 --> 00:02:15,000
-Frozen inputs and definitions keep the comparison reproducible.
-Changed labels are not a claim of money saved.
+00:00:35,552 --> 00:00:42,645
+Amounts use integer cents. Unknown actions are denied, and a matching deny takes
+precedence.
 
 7
-00:02:15,000 --> 00:02:45,000
-Human approval documents a decision while its context is valid.
-Original REVIEW preserved. No external action executed.
+00:00:45,000 --> 00:00:49,299
+We now send three actual requests to the application API.
 
 8
-00:02:45,000 --> 00:03:00,000
-Laravel, React and PostgreSQL.
-Scoped identity, hashed keys, transactional idempotency and actual usage.
+00:00:49,549 --> 00:00:59,236
+A one hundred and twenty dollar refund is allowed. A twenty four hundred dollar refund
+requires review. An unknown action is denied.
 
 9
-00:03:00,000 --> 00:03:15,000
-Pricing is proposed. No checkout or charges.
-Try the read-only synthetic tour. Execution stays with you.
+00:00:59,486 --> 00:01:07,249
+Each result records its reason and the published policy snapshot. No refund or
+external action is executed.
+
+10
+00:01:11,000 --> 00:01:17,073
+Next, we propose a stricter boundary: deny refunds above one hundred dollars.
+
+11
+00:01:17,323 --> 00:01:23,987
+This is an unpublished draft. Saving it does not change the rules used by live
+requests.
+
+12
+00:01:24,237 --> 00:01:31,829
+Preview impact runs the same deterministic engine over our three recorded inputs,
+without calling an external service.
+
+13
+00:01:39,000 --> 00:01:44,778
+The Replay Lab reports exactly two changed decisions and two newly denied requests.
+
+14
+00:01:45,028 --> 00:01:53,561
+It keeps three facts separate: the original recorded outcome, the frozen published
+baseline, and the candidate simulation.
+
+15
+00:01:53,811 --> 00:02:00,295
+These are measured label changes. They are not claims about money saved or losses
+prevented.
+
+16
+00:02:03,000 --> 00:02:07,183
+Here is the individual comparison for one recorded request.
+
+17
+00:02:07,433 --> 00:02:13,947
+The original and baseline remain intact, while the candidate explains its matching
+rule and reason.
+
+18
+00:02:14,197 --> 00:02:20,040
+Frozen inputs and policy definitions make this evidence reproducible after later
+edits.
+
+19
+00:02:23,000 --> 00:02:27,878
+A review outcome creates a human approval request with a freshness boundary.
+
+20
+00:02:28,128 --> 00:02:34,882
+We open the confirmation dialog, cancel once, then record approval through the real
+interface.
+
+21
+00:02:35,132 --> 00:02:43,574
+Approval documents a human choice. It preserves the original review decision and
+grants no permission to execute a refund.
+
+22
+00:02:49,000 --> 00:02:52,649
+The audit trail is also real application evidence.
+
+23
+00:02:52,899 --> 00:03:01,692
+This scoped audit endpoint returns the stored event for our synthetic evaluation, with
+safe metadata and an authenticated workspace boundary.
+
+24
+00:03:01,942 --> 00:03:06,705
+It is a JSON API view, not a separate audit dashboard.
+
+25
+00:03:08,705 --> 00:03:13,364
+Usage and Plans derives its counts from actual workspace records.
+
+26
+00:03:13,614 --> 00:03:22,222
+Our three evaluations, replay, and approval are visible here. Pricing is a proposal,
+with no checkout or charges.
+
+27
+00:03:22,472 --> 00:03:31,325
+A single authorized Backboard test did not yield an accepted explanation, so no
+artificial intelligence success is shown in this demo.
+
+28
+00:03:33,325 --> 00:03:38,914
+ScopeTwin is one Laravel, React, and PostgreSQL application.
+
+29
+00:03:39,164 --> 00:03:46,362
+Explore the read only synthetic tour, then evaluate, replay, and review in your own
+workspace.
+
+30
+00:03:46,612 --> 00:03:48,981
+Execution stays with you.

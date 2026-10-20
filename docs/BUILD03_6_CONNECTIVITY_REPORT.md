@@ -1,5 +1,7 @@
 # BUILD 03.6 — Bağlantı ve açık assistant bağlama raporu
 
+**Sonraki teslim çalışması:**2026-10-20'de ayrıca izin verilen tek canlı deneme yapıldı; açıklama kabul edilmedi, cleanup doğrulandı, flagfalse'a döndü ve retry yapılmadı. Bu rapordaki NOT_TESTED ifadeleri önceki preflight aşamalarına aittir. Güncel sonuç ve medya teslimleri SUBMISSION_DELIVERY_REPORT.md içindedir.
+
 Tarih: 2026-10-18. Taban `fea6281`; yerel dal `feat/build-03-6-backboard-connectivity`. Başlangıçta yalnızca iki izlenmeyen talimat dosyası vardı. Kullanıcı bunları koruyarak yeni dala devam edilmesini açıkça onayladı. Dosyaların içeriği değiştirilmedi. Bu çalışma AI üretimi veya uzak assistant/thread yazımı/silmesi yapmadı. Push, deployment, satın alma, promosyon işlemi, mevcut servis recreation veya özel ortam/ACL değişikliği yapılmadı.
 
 **Güncel durum (2026-10-20):** İlk bölümler tarihsel BUILD 03.6 kaydıdır; 2026-10-18 onaylı assistant/18734 kurulumu tamamlandı. Tekrarlanan istekte aynı assistant ve kapalı 18734 runtime yeniden doğrulandı; ikinci assistant oluşturulmadı. Docker başlangıçta kapalıydı, ayrı kullanıcı onayıyla başlatıldı; 18733/18734 sağlıklı, başlangıçta kapalı olan 18731 kapalı bırakıldı. Güncel ölçümler sondaki **2026-10-20 yeniden doğrulama** bölümündedir. **Canlı generation hâlâ NOT TESTED; BACKBOARD_ENABLED=false.**
