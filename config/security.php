@@ -5,4 +5,5 @@ return [
     'allow_insecure_http' => env('APP_ALLOW_INSECURE_HTTP', false),
     'hsts' => env('HSTS_ENABLED', false),
     'password_recovery' => env('PASSWORD_RECOVERY_ENABLED', false),
+    'observe_proxy' => env('RELEASE_OBSERVE_PROXY', false),
 ];

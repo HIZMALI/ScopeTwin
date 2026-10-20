@@ -18,6 +18,12 @@ final class RedactSecrets
                 if (isset($record->context['advisor_status'])) {
                     $context = array_merge($context, ['event' => 'replay_advisor'], AdvisorDiagnostics::safe($record->context));
                 }
+                $peer = $record->context['proxy_peer'] ?? null;
+                if (($record->context['deployment_event'] ?? null) === 'proxy_peer' && is_string($peer)
+                    && filter_var($peer, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
+                    && ! filter_var($peer, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    $context = array_merge($context, ['deployment_event' => 'proxy_peer', 'proxy_peer' => $peer]);
+                }
 
                 return $record->with(message: 'Application event', context: $context, extra: []);
             }

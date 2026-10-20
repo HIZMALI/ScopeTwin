@@ -6,6 +6,7 @@ use App\Logging\RedactSecrets;
 use App\Services\OrganizationContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (app()->isProduction() && parse_url(config('app.url'), PHP_URL_SCHEME) === 'https') {
+            URL::forceScheme('https');
+        }
         foreach (config('logging.channels') as $name => $channel) {
             config(["logging.channels.$name.tap" => [...($channel['tap'] ?? []), RedactSecrets::class]]);
         }

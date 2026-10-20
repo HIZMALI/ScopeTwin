@@ -5,12 +5,21 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 final class ConfiguredProxies extends TrustProxies
 {
     public function handle(Request $request, Closure $next)
     {
         $this->proxies = config('security.trusted_proxies');
+        // Temporary operator opt-in: observe the actual peer, never a forwarded header.
+        if (app()->isProduction() && config('security.observe_proxy') && $request->is('ready')) {
+            $peer = $request->server('REMOTE_ADDR');
+            if (is_string($peer) && filter_var($peer, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
+                && ! filter_var($peer, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                Log::warning('Deployment proxy observation', ['deployment_event' => 'proxy_peer', 'proxy_peer' => $peer]);
+            }
+        }
 
         return parent::handle($request, $next);
     }
