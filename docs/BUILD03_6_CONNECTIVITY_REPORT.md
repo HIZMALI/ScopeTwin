@@ -2,7 +2,7 @@
 
 Tarih: 2026-10-18. Taban `fea6281`; yerel dal `feat/build-03-6-backboard-connectivity`. Başlangıçta yalnızca iki izlenmeyen talimat dosyası vardı. Kullanıcı bunları koruyarak yeni dala devam edilmesini açıkça onayladı. Dosyaların içeriği değiştirilmedi. Bu çalışma AI üretimi veya uzak assistant/thread yazımı/silmesi yapmadı. Push, deployment, satın alma, promosyon işlemi, mevcut servis recreation veya özel ortam/ACL değişikliği yapılmadı.
 
-**Güncel durum:** Yukarıdaki paragraf ve ilk bölümler ilk BUILD 03.6 çalışmasının tarihsel kaydıdır. Sonraki açık kullanıcı onayıyla dedicated assistant ve yalnız 18734 özel yapılandırma/recreation tamamlandı. Güncel ölçümler aşağıdaki **Onaylı assistant ve 18734 hazırlığı** bölümündedir. **Canlı generation hâlâ NOT TESTED; BACKBOARD_ENABLED=false.**
+**Güncel durum (2026-10-20):** İlk bölümler tarihsel BUILD 03.6 kaydıdır; 2026-10-18 onaylı assistant/18734 kurulumu tamamlandı. Tekrarlanan istekte aynı assistant ve kapalı 18734 runtime yeniden doğrulandı; ikinci assistant oluşturulmadı. Docker başlangıçta kapalıydı, ayrı kullanıcı onayıyla başlatıldı; 18733/18734 sağlıklı, başlangıçta kapalı olan 18731 kapalı bırakıldı. Güncel ölçümler sondaki **2026-10-20 yeniden doğrulama** bölümündedir. **Canlı generation hâlâ NOT TESTED; BACKBOARD_ENABLED=false.**
 
 ## Ölçülen durum
 
@@ -127,3 +127,46 @@ Assistant yalnız aggregate policy replay açıklaması için oluşturuldu; ara�
 **Hazır olmayan/kanıtlanmayan:** gerçek generation başarısı/yanıt şeması, açıklama kalitesi, output filtresinden geçiş, gecikme, gerçek fatura/bakiye ve canlı thread cleanup. Katalog kaydı bunları kanıtlamaz. Çağrı kotası dolar tavanı değildir; timeout ücretlenebilir. Sponsor kredi/uygunluk konusu hâlâ doğrulanmadı.
 
 **Sonraki tek adım ayrı izin gerektirir:** yalnız 18734'te geçici enable/recreation ile **bir sentetik generation**, API'nin bunun için açacağı **thread** ve adapter'ın **best-effort DELETE cleanup** işlemi birlikte açıkça onaylanmalı; bakiye/kullanım özel olarak gözden geçirilmeli. Mevcut onay bunları kapsamıyor. Bu izin gelene kadar BACKBOARD_ENABLED=false korunur; canlı smoke çalıştırılmaz. GitHub push, uzak deployment, DNS veya hizmet satın alma yapılmadı.
+
+## 2026-10-20 yeniden doğrulama — aynı assistant, yeni uzak yazım yok
+
+Tekrarlanan görev temiz `4f76bbc` üzerinden, aynı `feat/build-03-6-backboard-connectivity` dalında ele alındı. `5186390` uygulama tabanı ve önceki başarılı kurulum belgeleri korundu. Mevcut iş zaten tamamlandığından yeni assistant oluşturmak veya private ayarları yeniden yazmak gerekmedi.
+
+### Güncel sonuçlar
+
+| Soru | 2026-10-20 doğrulaması |
+| --- | --- |
+| Assistant var mı? | **EVET.** Resmî tam isim filtresi HTTP 200 ile **tek** ScopeTwin Replay Advisor döndürdü. Kimliği önceki şifreli kurulum kaydı ve mevcut özel 18734 ayarıyla eşleşti; UUID sohbet/Git/log/evidence'e yazılmadı. Bugünkü assistant POST sayısı **0**; önceki tek assistant yeniden kullanılıyor. |
+| İzolasyon | Ayrı detail/docs/threads/memory-stats GET'leri HTTP 200: beklenen isim/talimatlar, **0 araç / 0 belge / 0 thread / 0 memory**. Hassas/default assistant kullanılmadı; hiçbir uzak kaynak değiştirilmedi/silinmedi. |
+| Model | Provider filtreli güncel katalog HTTP 200: **featherless / openai/gpt-oss-20b**, text/JSON desteği true. Girdi **USD 0.0375**, çıktı **USD 0.15 / 1M token**. Gerçek generation erişimi/yanıtı/maliyeti sınanmadı. |
+| Özel yapılandırma | Üç private env dosyasının hash, ACL ve owner bilgisi önceki kurulum kaydıyla aynı. Kök anahtar ile 18734 key eşitliği, özel assistant binding, provider/model, BUILD 03.6 image seçimi ve ilgisiz tüm ortam değerleri doğrulandı. **BACKBOARD_ENABLED=false**; hiçbir private dosya yazılmadı. |
+| 18734 | Mevcut **scopetwin:build036** container'ı **healthy**, `/ready` **200**. Container oluşturulma zamanı **2026-10-18 20:38:17Z**; bugün recreation/image/env güncellemesi yapılmadı. Boot cache key/UUID/APP_KEY/DB_PASSWORD eşitlikleri özel hash kontrolüyle doğrulandı. |
+| 18733 | Başlangıçta durmuştu; onaylanan Docker Desktop başlangıcında mevcut restart politikasıyla otomatik açıldı. **healthy / ready 200**. Container kimliği/image/env hash/mount bilgisi aynı; manuel recreation/config işlemi yapılmadı. |
+| 18731 | Görev başlangıcında dinleyici yoktu, `/ready` erişilemiyordu. Dokunmama koşulu ve ek onay kapsamı gereği host uygulaması başlatılmadı; **şu anda kapalı**. Sağlıklı veya today-ready olduğu iddia edilmiyor. |
+| Generation/krediler | Altı authenticated **GET**, **0 POST/PUT/DELETE**. Gerçek AI isteği, thread oluşturma, remote silme ve canlı smoke yok. **LIVE_NOT_TESTED / CREDITS_NOT_CLAIMED**. |
+
+Docker Desktop/engine ve üç port ilk ölçümde kapalıydı. Kullanıcıya, Docker başlangıcının 18733/diğer projeleri restart politikalarıyla açabileceği açıklandı; kullanıcı **Docker Desktop'ı başlat** yanıtıyla bunu ayrıca onayladı. İlk CLI başlangıç bildirimi engine hazır olduğu anlamına gelmedi: bounded salt okunur problarda pipe/timeout hataları görüldü. Sonraki başlatma/başlangıç tamamlanmasıyla engine ve mevcut 18733/18734 servisleri hazır hale geldi. WSL salt okunur liste sorgusu başarılıydı; WSL update, factory reset, shutdown, unregister, disk onarımı, container/volume silme veya secret değişikliği yapılmadı. Günlükteki başlangıç uyarıları veri bozulması olarak yorumlanmadı.
+
+### Bugün çalıştırılan testler
+
+| Kontrol | Gerçek sonuç |
+| --- | --- |
+| SQLite | **178 PASS / 1367 assertion**, **23.92s**; `storage/backboard-recheck-20261020-sqlite.txt` |
+| PostgreSQL | **178 PASS / 1367 assertion**, **34.60s**; `storage/backboard-recheck-20261020-postgres.txt` |
+| PG migration ve concurrency | Üç migration rollback/reapply, idempotency, approve/reject, stale policy ve üç advisor quota/cache yarışı **PASS**. Yalnız ephemeral test DB; upstream tamamen mock. |
+| Chromium tam workflow | **4 PASS / 1.2 dakika**, ayrı 18732 ve disposable browser DB; `storage/backboard-recheck-20261020-browser.txt` |
+| Mevcut 18734 public tur | **3 PASS / 15.3s**; Chromium/Firefox/WebKit, masaüstü/mobil, axe/CSP/focus; `storage/backboard-recheck-20261020-release.txt`. Windows WebKit gerçek Tab sınırlaması aynen kayıtlı; bu durumda programatik focus doğrulanır. |
+| Kapalı gerçek advisor | Mevcut sentetik aggregate readonly transaction'da **PASS**; advise disabled, **0 HTTP / 0 kota veya açıklama yazımı**. Advisor kota ve açıklama tabloları hâlâ **0 kayıt**. |
+| Paket assistant guard | BUILD 03.6 image'ında ağsız ayrı container: disabled/missing/malformed/valid config durumları **PASS**; yalnız mock değerler, DB/HTTP yok. |
+| TLS / public güvenlik | 18734 public Backboard TLS probu **cURL 0 / HTTP 200**, doğrulama açık. Dört public yol 200/cookie yok, dört private yol 404, forged Host 400, public POST 405, CSP PASS; public HTML/container loglarında gerçek sır/assistant kimliği literal taraması PASS. |
+| Frontend / stil | TypeScript, ESLint, Prettier, Pint **PASS**. İzole özel output'a Vite production build **PASS / 10.70s / 2027 modül**; mevcut `public/build` değiştirilmedi. |
+| Bağımlılık denetimleri | Strict Composer valid, Composer advisory **0**, npm vulnerability **0**. |
+| Çalışan app image Trivy | Güncel vulnerability DB indirilerek çalışan 18734 image export'u tarandı: **0 HIGH / CRITICAL**, **2026-10-20 17:11:01Z**; suppression yok. `storage/backboard-recheck-20261020-scan-app.json`. DB image'ı yeniden taranmış sayılmadı. |
+
+Orijinal geliştirme PostgreSQL container'ı durmuştu; test için başlatılmadı. PostgreSQL ve browser suite, yerel mevcut PostgreSQL image'ı kullanan **yeni ve geçici bir Compose projesi** üzerinde çalıştı: rastgele boş loopback portu, yeni test-only credential, **tmpfs depolama**, ayrı test DB'leri. Test bitiminde yalnız bu geçici container/network kaldırıldı; mevcut hiçbir volume kullanılmadı/silinmedi. `down -v` kullanılmadı. Test secret'ı yalnız işlem belleği/container env içindeydi, gerçek Backboard credential test runner'a verilmedi.
+
+Veri koruma: 18733'ün **21 tablosu** önceki hash/sayılarla aynı; 18734'ün **framework cache dışındaki 22 tablosu** aynı. Framework cache, önceki ve bugünkü unauthenticated ingress throttle güvenlik testleri nedeniyle değişik; satır sayısı **76 → 76**. Alan, replay, approval, advisor, oturum ve diğer kalıcı tablolar aynı. Cache elle temizlenmedi/geri yazılmadı. Orijinal geliştirme DB'sinin container/image/env/mount kimlikleri korundu, fakat sunucu kapalı bırakıldığı için **183 kayıt SQL guard'ı bugün yeniden çalıştırılmadı**; 2026-10-18 PASS sonucu güncel çalıştırma olarak sunulmadı.
+
+Final source/privacy gate: **304 kaynak yolu** configured secret-pattern ve gerçek private key/assistant/ortam sırları için literal taramadan geçti. Değişen dokümanlarda whitespace kontrolü PASS; üç private dosya Git tarafından ignore ediliyor ve hash/ACL/owner değerleri aynı. Bugün yalnız dört mevcut doküman güncellendi; uygulama kodu/private yapılandırma değiştirilmedi.
+
+**Tek canlı teste hazırlık:** isolated 18734 tarafında teknik hazırlık doğrulandı ve yeni config/recreation gerekmedi. Gerçek response kalitesi/şeması, süre, ücret ve canlı cleanup hâlâ bilinmiyor. Memory/search için assistant genelinde belgelenmiş hard-disable yok; request-level off kontrolleri ve boş bağlam doğrulaması geçerli. Sponsor uygunluğu/bakiye kanıtlanmadı. Geçici enable, bir generation, implicit thread ve best-effort remote DELETE için önceki ayrı izin gereksinimi aynen sürüyor. **Generation yapmadan duruldu.** 18731'in ayrıca başlatılması bu görevde yapılmadı; talep edilirse ayrı yerel çalışma adımıdır.
