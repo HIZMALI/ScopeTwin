@@ -6,4 +6,5 @@ return [
     'hsts' => env('HSTS_ENABLED', false),
     'password_recovery' => env('PASSWORD_RECOVERY_ENABLED', false),
     'observe_proxy' => env('RELEASE_OBSERVE_PROXY', false),
+    'client_ip_header' => env('TRUSTED_CLIENT_IP_HEADER'),
 ];

@@ -29,6 +29,18 @@ final class ConfiguredProxies extends TrustProxies
             }
         }
 
-        return parent::handle($request, $next);
+        return parent::handle($request, function (Request $request) use ($next) {
+            // Opt-in only for an operator-verified Cloudflare edge path. XFF may
+            // contain visitor-supplied entries; use the edge-overwritten single IP.
+            if (app()->isProduction() && config('security.client_ip_header') === 'CF-Connecting-IP' && $request->isFromTrustedProxy()) {
+                $client = $request->headers->get('CF-Connecting-IP');
+                $request->headers->remove('X-Forwarded-For');
+                if (is_string($client) && filter_var($client, FILTER_VALIDATE_IP)) {
+                    $request->headers->set('X-Forwarded-For', $client);
+                }
+            }
+
+            return $next($request);
+        });
     }
 }

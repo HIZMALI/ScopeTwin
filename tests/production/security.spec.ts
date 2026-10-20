@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { request as httpsRequest } from 'node:https';
 
-test('public HTTPS boundary: redirects, certificate, private paths, host and unauthenticated writes', async ({ request, baseURL }) => {
+test('public HTTPS boundary: redirects, certificate, private paths, host and unauthenticated writes', async ({ page, request, baseURL }) => {
     // TLS verification remains enabled in Playwright; no ignoreHTTPSErrors.
     const ready = await request.get('/ready');
     expect(ready.status()).toBe(200);
@@ -17,8 +18,18 @@ test('public HTTPS boundary: redirects, certificate, private paths, host and una
         expect([403, 404]).toContain(response.status());
         expect(await response.text()).not.toMatch(/APP_KEY=|DB_PASSWORD=|\[core\]|vendor\/autoload/);
     }
-    const wrongHost = await request.get('/', { headers: { Host: 'untrusted.example.test' }, maxRedirects: 0 });
-    expect([400, 403, 404, 421]).toContain(wrongHost.status());
+    // Pin correct TLS SNI while testing an incorrect HTTP Host. Playwright otherwise
+    // uses Host as SNI and only exercises the edge's TLS rejection.
+    const wrongHost = await new Promise<number>((resolve, reject) => {
+        const probe = httpsRequest(baseURL!, { servername: new URL(baseURL!).hostname, headers: { Host: 'untrusted.example.test' } }, response => {
+            response.resume();
+            resolve(response.statusCode!);
+        });
+        probe.setTimeout(20_000, () => probe.destroy(new Error('Host probe timed out')));
+        probe.on('error', reject);
+        probe.end();
+    });
+    expect([400, 403, 404, 421]).toContain(wrongHost);
     const forwarded = await request.get('/demo', { headers: { 'X-Forwarded-Host': 'untrusted.example.test', 'X-Forwarded-Proto': 'http' } });
     expect(forwarded.status()).toBe(200);
     expect(await forwarded.text()).not.toContain('untrusted.example.test');
@@ -33,4 +44,17 @@ test('public HTTPS boundary: redirects, certificate, private paths, host and una
     // CSP nonces differ per request; compare rendered deterministic report data separately in browser tests.
     expect(demoBefore.status()).toBe(200);
     expect(demoAfter.status()).toBe(200);
+    await page.goto('/register');
+    const csrf = await page.locator('meta[name="csrf-token"]').getAttribute('content');
+    const registrationStatuses = [];
+    for (let i = 1; i <= 6; i++) {
+        const response = await page.request.post('/register', {
+            headers: { 'X-CSRF-TOKEN': csrf!, Accept: 'application/json', 'X-Forwarded-For': `198.51.100.${i}`,
+                'CF-Connecting-IP': `198.51.100.${i}`, 'True-Client-IP': `198.51.100.${i}`, 'X-Real-IP': `198.51.100.${i}` },
+            data: {}, // Invalid input creates no users; all six attempts must share the real rate limit.
+        });
+        registrationStatuses.push(response.status());
+    }
+    expect(registrationStatuses.every(status => status === 422 || status === 429)).toBe(true);
+    expect(registrationStatuses).toContain(429);
 });
