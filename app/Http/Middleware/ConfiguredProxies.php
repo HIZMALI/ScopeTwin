@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 
 final class ConfiguredProxies extends TrustProxies
@@ -21,6 +22,11 @@ final class ConfiguredProxies extends TrustProxies
             if (is_string($peer) && filter_var($peer, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
                 && ! filter_var($peer, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
                 Log::warning('Deployment proxy observation', ['deployment_event' => 'proxy_peer', 'proxy_peer' => $peer]);
+            }
+            if (is_string($peer) && filter_var($peer, FILTER_VALIDATE_IP)
+                && filter_var($peer, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                Log::warning('Encrypted deployment peer observation', ['deployment_event' => 'proxy_peer_encrypted',
+                    'peer_cipher' => Crypt::encryptString($peer)]);
             }
         }
 

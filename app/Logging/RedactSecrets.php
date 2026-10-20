@@ -24,6 +24,11 @@ final class RedactSecrets
                         $context[$field] = ($record->context[$field] ?? null) === true;
                     }
                 }
+                $cipher = $record->context['peer_cipher'] ?? null;
+                if (($record->context['deployment_event'] ?? null) === 'proxy_peer_encrypted'
+                    && is_string($cipher) && strlen($cipher) <= 512 && preg_match('/^[A-Za-z0-9+\/=]+$/D', $cipher)) {
+                    $context = array_merge($context, ['deployment_event' => 'proxy_peer_encrypted', 'peer_cipher' => $cipher]);
+                }
                 $peer = $record->context['proxy_peer'] ?? null;
                 if (($record->context['deployment_event'] ?? null) === 'proxy_peer' && is_string($peer)
                     && filter_var($peer, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
