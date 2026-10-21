@@ -1,14 +1,14 @@
-# ScopeTwin release deployment
+# Deployment
 
-Current host: **[ScopeTwin free Render preview](https://scopetwin-hizmali.onrender.com)** with a separate new PostgreSQL18 database. Public source: [HIZMALI/ScopeTwin](https://github.com/HIZMALI/ScopeTwin). The owner explicitly authorized this public repository and free deployment. See [current verification and limits](PUBLIC_RELEASE_REPORT.md). The Compose instructions below remain a separate self-hosting option.
+The current [Render preview](https://scopetwin-hizmali.onrender.com) uses the public [GitHub repository](https://github.com/HIZMALI/ScopeTwin) and a separate PostgreSQL 18 database. See [dated verification](TESTING.md) and [preview configuration](#actual-render-preview---2026-10-21). The Compose instructions are a separate self-hosting option.
 
 ## Release design
 
 One PHP 8.4 / FrankenPHP (Caddy, classic mode) image serves only `/app/public`, including the Node-built Vite assets. A separate PostgreSQL 18 container has **no published port**. The app runs as UID 33 on 8080 with dropped capabilities. Named volumes persist PostgreSQL and Laravel storage. Redis, workers and scheduler are unnecessary for the synchronous evaluation/replay/approval paths.
 
-Docker stages install locked npm dependencies, build assets, install optimized production Composer dependencies, and assemble the application. Base images are digest-pinned. The matching official FrankenPHP builder repairs the stock binary's `golang.org/x/net` dependency to v0.60.0 for CVE-2026-78669; the final image is scanned again. No `.env`, Git metadata, vendor tree from the host, tests, screenshots or database dumps enter the build context. The boot script validates production/debug/URL/key settings and caches configuration/routes/views. **It never migrates, seeds, resets data or generates a key.** The runtime database role receives DML and sequence permissions, without superuser or schema-creation privileges. The migration-owner password is deliberately absent from the web container environment.
+Docker stages install locked npm dependencies, build assets, install optimized production Composer dependencies and assemble the application. Base images are digest-pinned. No `.env`, Git metadata, host vendor tree, tests, screenshots or database dumps enter the build context. The boot script validates production/debug/URL/key settings and caches configuration/routes/views. **It never migrates, seeds, resets data or generates a key.** Runtime database privileges are DML and sequence usage, without superuser, schema creation or ownership; the migration-owner password is absent from the web environment.
 
-The PostgreSQL image derives from the pinned official PostgreSQL 18 Alpine image. Its entrypoint's user/exec helper is supplied by Alpine `su-exec` (C) instead of the stock `gosu` binary's outdated Go runtime. PostgreSQL itself, data format, entrypoint behavior and existing volumes are preserved. A fresh initialization test and full real-DB journeys verify this packaging repair; the user's development PostgreSQL image/service is not changed.
+The PostgreSQL image derives from the pinned official PostgreSQL 18 Alpine image and uses Alpine `su-exec` for privilege switching. Review the [Dockerfile](../Dockerfile), [database image](../deploy/postgres.Dockerfile) and current vulnerability scans before promoting a new image. Historical scans are dated in the [testing guide](TESTING.md); they are not a current remote-image certification.
 
 ## Reproduce the isolated local rehearsal (PowerShell 7)
 
@@ -36,10 +36,10 @@ docker compose --env-file storage/.env.rehearsal -p scopetwin-build03 -f compose
 
 Never run `down -v` against an existing project. This release does not require deleting any volume.
 
-## Approved Linux production deployment — operator steps, not executed here
+## Self-hosted Linux deployment
 
 1. Obtain explicit approval for the host, public repository/registry, domain, DNS and release. Verify the hackathon launch requirements. Provision a supported Docker host with adequate disk/memory, patched OS and firewall; expose only SSH to operators and HTTPS/HTTP to the TLS proxy. Keep the application's upstream on loopback.
-2. Place a reviewed checkout/image on that host. Pin the verified image digest for promotion; moving image tags and external base images should be rescanned/rebuilt before each release. A clean source build uses `docker build --pull -t scopetwin:build03 .`. Review the container vulnerability evidence and resolve release-blocking findings before making it public.
+2. Place a reviewed checkout/image on that host. Pin the verified image digest for promotion; moving image tags and external base images should be rescanned/rebuilt before each release. A clean source build uses `docker build --pull -t scopetwin:release .`. Review the container vulnerability evidence and resolve release-blocking findings before making it public.
 3. Copy `.env.production.example` to an operator-owned **outside-repository** file such as `/etc/scopetwin/release.env`; `chmod 600` it. Generate a new random 32-byte base64 `APP_KEY`, separate random owner/runtime DB passwords, set `APP_URL=https://approved-host`, `RELEASE_DATABASE=scopetwin_release`, and `SESSION_SECURE_COOKIE=true`. Keep APP_KEY stable after launch: agent hashes depend on it. Never copy this machine's application/rehearsal secrets. Compose uses `--env-file`; do not print expanded `docker compose config` (use `config --quiet`).
 4. Configure an independently managed TLS reverse proxy (Nginx/Caddy) on the approved domain. Point it to `127.0.0.1:18733`, overwrite forwarded headers, and configure `TRUSTED_PROXIES` to the **exact upstream source address/CIDR** after observing that network path. Default is trust nobody; never use `*`. The app accepts only the APP_URL host in production. Verify spoofed Host/forwarded headers are rejected/ignored. Enable `HSTS_ENABLED=true` only after external HTTPS and renewal work; it does not include subdomains or preload.
 5. Before an existing release upgrade, create and verify a backup using the runbook. Inspect `php artisan migrate --pretend` with the migration identity. Only additive forward migrations are permitted against existing user data.
@@ -47,11 +47,13 @@ Never run `down -v` against an existing project. This release does not require d
 
 ```sh
 # Linux; $RELEASE_ENV is an absolute private file path, never committed.
+
 export RELEASE_ENV=/etc/scopetwin/release.env
 docker compose --env-file "$RELEASE_ENV" -p scopetwin-release -f compose.production.yaml config --quiet
 docker compose --env-file "$RELEASE_ENV" -p scopetwin-release -f compose.production.yaml build app database
 docker compose --env-file "$RELEASE_ENV" -p scopetwin-release -f compose.production.yaml up -d --wait database
 # Set DB_PASSWORD privately to the migration-owner password for this one command.
+
 docker compose --env-file "$RELEASE_ENV" -p scopetwin-release -f compose.production.yaml run --rm --no-deps --entrypoint php -e DB_USERNAME=scopetwin_owner -e DB_PASSWORD app artisan migrate --pretend
 docker compose --env-file "$RELEASE_ENV" -p scopetwin-release -f compose.production.yaml run --rm --no-deps --entrypoint php -e DB_USERNAME=scopetwin_owner -e DB_PASSWORD app artisan migrate --force --no-interaction
 unset DB_PASSWORD
@@ -82,25 +84,30 @@ First setup requires an empty database. The command also requires the dedicated 
 - Test login, session renewal, real ALLOW/REVIEW/DENY, retry/conflict, replay, documentary approval and usage on a **dedicated external smoke workspace**, with explicit operator authorization.
 - Check HTTPS/redirects, Secure/HttpOnly/SameSite cookies, CSP in the browser, exact proxy/host trust, `.env`/`.git`/storage denial and generic error pages. Local HTTP rehearsal cannot establish real TLS, HSTS or SMTP delivery.
 - Mail recovery is disabled by default. Use a verified SMTP transport, configure sender/domain authentication, enable `PASSWORD_RECOVERY_ENABLED=true`, restart and actually test delivery before advertising recovery. Array/log mailers never count as delivery. Registration is 5/minute/IP; login retains the starter's 5-attempt email/IP limiter.
-- Never publish a raw API key, environment file, trace or database dump. Judge images contain synthetic data only. Update placeholder URLs only after independently checking real endpoints.
+- Never publish a raw API key, environment file, trace or database dump. Judge images contain synthetic data only. Verify public URLs and update release materials only after checking the actual endpoints.
 
 For a real TLS reverse proxy, review both [FrankenPHP proxy configuration](https://frankenphp.dev/docs/production/#running-behind-a-reverse-proxy) and Laravel's explicit trusted proxies. Configure Caddy's `servers { trusted_proxies static <actual addresses> }` only for the approved proxy path, and verify spoofing/secure detection externally; no wildcard trust is shipped. The checked-in Caddyfile keeps internal automatic HTTPS/admin off, serves only public/ and blocks internal/dot paths. Caddy's configuration/data directories are writable by the non-root user; internal TLS certificates are not generated in this setup.
 
-References: [Laravel 13 deployment](https://laravel.com/docs/13.x/deployment), [FrankenPHP Docker](https://frankenphp.dev/docs/docker/), reviewed 2026-10-18. The self-hosted steps above are procedures; actual managed-host evidence follows below and in PUBLIC_RELEASE_REPORT.md.
-
+References: [Laravel 13 deployment](https://laravel.com/docs/13.x/deployment), [FrankenPHP Docker](https://frankenphp.dev/docs/docker/), reviewed 2026-10-18. The self-hosted steps above are procedures; actual managed-host configuration follows below. Verification is recorded in [testing](TESTING.md).
 
 ## Actual Render preview - 2026-10-21
 
-The existing Dockerfile builds from public Git main. Free Web Service, Oregon,512 MB/0.1 CPU,PORT8080,health `/ready`, managed onrender.com HTTPS. Public repository updates require Manual Deploy / Deploy latest commit; no additional OAuth grant to unrelated repositories. No paid plan, card, custom domain, DNS change or automatic billing was added.
+| Setting      | Deployed configuration                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Web          | Free Docker service, Oregon, 512 MB / 0.1 CPU, port 8080, health `/ready`, managed onrender.com HTTPS               |
+| Database     | Separate Free PostgreSQL 18, `scopetwin_public_demo`, 1 GB, autoscaling disabled                                    |
+| Updates      | Manual deploy from reviewed Git `main`; a repository push alone is not a deployment                                 |
+| Secrets      | New private application key/runtime password; no local environment copied; migration-owner password absent from web |
+| Runtime role | `scopetwin_runtime`: DML/sequence usage, no superuser, database/role/schema creation or ownership                   |
+| Public tour  | Guarded synthetic fixture installed only in this new database; `DEMO_ALLOW_SETUP=false` afterward                   |
+| Features     | `BACKBOARD_ENABLED=false`, no Backboard credential remotely; `MAIL_MAILER=array`, `PASSWORD_RECOVERY_ENABLED=false` |
 
-A new Free PostgreSQL18 service holds only the new `scopetwin_public_demo` database,1 GB,autoscaling disabled. New random APP_KEY and runtime password remain private. Local18731/18733/18734 data, secrets, volumes and applications were not reconfigured or copied. The migration owner is absent from the web environment. `scopetwin_runtime` has DML/sequence privileges, no SUPERUSER,CREATEDB,CREATEROLE,schema CREATE or ownership. Forward migrations and guarded `scope:judge-demo --confirm-disposable` ran only on this new database; DEMO_ALLOW_SETUP=false afterward.
+Configuration uses production/debug-off operation, canonical HTTPS APP_URL, database sessions/cache and encrypted Secure/HttpOnly/SameSite=Lax cookies. Logs use stderr with production redaction. The web filesystem is ephemeral; no user file-upload workflow requires a persistent disk.
 
-The free plan lacks SSH/shell/pre-deploy jobs. Provisioning therefore uses a private operator connection with sslmode=verify-full and trusted CA. The web service uses the internal DB hostname with DB_SSLMODE=require (Render internal certificates do not support verify-full). Close resource-specific external DB access after provisioning; a future operator migration may temporarily allow only its /32 and then close it. Do not change workspace or unrelated resource rules. Keep APP_KEY stable after launch.
+**Proxy trust is deployment-specific.** The verified external network path reaches PHP via IPv6 loopback `::1`, while health checks use separate private IPv4. `TRUSTED_PROXIES=::1`, `RELEASE_OBSERVE_PROXY=false`, and HSTS is enabled. Forwarded host/port/prefix are ignored. On this verified Render/Cloudflare path only, `TRUSTED_CLIENT_IP_HEADER=CF-Connecting-IP` accepts the edge-overwritten single client IP from a trusted peer. Raw visitor XFF chains cannot choose rate-limit identities; missing/invalid edge IP falls back to the actual peer. This opt-in defaults empty elsewhere. Do not copy these trust settings to another topology without verification.
 
-APP_ENV=production,APP_DEBUG=false; database sessions/cache; encrypted Secure/HttpOnly/SameSite=Lax session; canonical HTTPS APP_URL; strict APP_URL host; HSTS; forwarded host/port/prefix ignored. Encrypted peer diagnosis proved external requests arrive via IPv6 loopback `::1`, whereas health probes use separate private IPv4. TRUSTED_PROXIES contains only `::1`, no wildcard/broad network. RELEASE_OBSERVE_PROXY=false after diagnosis. On this verified Render/Cloudflare path, TRUSTED_CLIENT_IP_HEADER=CF-Connecting-IP normalizes only the edge-overwritten single client IP from a trusted peer. Raw visitor XFF chains cannot choose rate-limit identities; missing/invalid edge IP falls back to the actual peer rather than visitor XFF. This opt-in defaults empty elsewhere; do not enable it behind an unverified proxy. Revalidate after platform/topology changes. Optional diagnosis logs only finite TLS flags and encrypted peers, no request bodies, raw public addresses, keys or forwarded header values.
+The free service lacks SSH/shell/pre-deploy jobs. Approved provisioning used a private operator connection with TLS `verify-full` and trusted CA; web uses the internal database hostname with `DB_SSLMODE=require` because that internal certificate does not support `verify-full`. Resource-specific external database access is now closed. Future operator migrations require an approved temporary narrow access rule and closure afterward. Preserve APP_KEY and use explicit forward migrations; never reset the database or put owner credentials into the web service.
 
-BACKBOARD_ENABLED=false; no Backboard credential is installed remotely. MAIL_MAILER=array,PASSWORD_RECOVERY_ENABLED=false; email delivery is not claimed. PostgreSQL persists sessions/domain data across app recreation. The web filesystem is ephemeral; there is no user file-upload workflow requiring a persistent disk. Logs use stderr and existing production redaction.
+The free web service may sleep after 15 idle minutes, with a platform-advertised wake time around a minute. An actual provider suspension/cold boot was not established by the recorded quiet-client check. Free PostgreSQL is scheduled to expire on **19 November 2026**, without managed backups/PITR. Arrange a private export and continued hosting before expiry if needed. Shared workspace quotas may also suspend services or builds. This preview is not a commercial SLA; paid upgrades require separate approval.
 
-Free constraints: sleep after15 idle minutes, wake-up about1 minute;750 instance-hours/workspace/month. This account shows5 GB bandwidth and500 build minutes/month, shared across services. Dashboard: no card on file, services/datastores currently$0. Limits may suspend services/builds. Free PostgreSQL expires **November19,2026**, without managed backups/PITR. This is a time-limited hackathon preview, not a commercial production SLA. Export privately before expiry if it must survive. Paid upgrades require separate owner approval; no dumps or credentials in Git.
-
-Reviewed official references: [Laravel Docker](https://render.com/docs/deploy-php-laravel-docker), [free constraints](https://render.com/docs/free), [PostgreSQL](https://render.com/docs/postgresql-creating-connecting), [inbound access](https://render.com/docs/inbound-ip-rules). Actual external verification is recorded separately in the release report.
+Official references: [Render Laravel Docker](https://render.com/docs/deploy-php-laravel-docker), [free constraints](https://render.com/docs/free), [PostgreSQL](https://render.com/docs/postgresql-creating-connecting), [inbound access](https://render.com/docs/inbound-ip-rules). These describe platform procedures; [test evidence](TESTING.md) records what was actually verified.

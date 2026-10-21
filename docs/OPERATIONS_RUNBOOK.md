@@ -6,6 +6,12 @@ The operator owns host patches, TLS/DNS, backups, key custody, SMTP and restore 
 
 Never regenerate an existing APP_KEY: agent key hashes use it. Back up the key separately in an approved encrypted secret store; do not copy it into this repository or routine command output. Protect both migration and runtime passwords; the web container receives only its runtime password. Direct database owners can alter historical evidence: application immutability is not database RLS, a trigger, WORM storage or cryptographic attestation.
 
+## Managed preview
+
+The current Render configuration and free database expiry are in [deployment](DEPLOYMENT.md#actual-render-preview---2026-10-21). External database access is closed and web uses only the restricted runtime identity. A future migration or backup requires an approved private operator connection, temporary narrow access if necessary, and closure afterward. Never place the migration-owner password into the web environment. Backboard and email recovery stay disabled until separately configured and verified.
+
+The Compose commands below apply to self-hosted/local rehearsal installations, not the managed Render service.
+
 ## Daily health and logs
 
 Use the appropriate explicit Compose file, private env file and project name on **every** command. The local rehearsal uses `scopetwin-build03`; the existing development app uses its existing project. Do not substitute one for the other.
@@ -28,6 +34,7 @@ Linux example, after target approval:
 umask 077
 docker compose --env-file "$RELEASE_ENV" -p scopetwin-release -f compose.production.yaml exec -T database pg_dump -U scopetwin_owner -d scopetwin_release -Fc > /approved-private-backups/scopetwin-before-release.dump
 # Check listing; this alone is not a successful restore drill.
+
 docker compose --env-file "$RELEASE_ENV" -p scopetwin-release -f compose.production.yaml exec -T database pg_restore --list < /approved-private-backups/scopetwin-before-release.dump
 ```
 
@@ -37,7 +44,7 @@ PowerShell 7.4+ supports native binary redirection. On older Windows hosts use `
 
 Restore only into a **new isolated empty** database/project first. Never use `--clean`, overwrite a volume, `db:wipe`, `migrate:fresh` or rollback against `scopetwin` or a live release. Create the new target under operator approval, restore with the migration owner, grant the separate runtime identity again, load the corresponding existing application key privately, then run readiness, row counts/hash sampling, login/API/replay/approval checks and credential validation. Compare backup timestamps and schema versions. A backup without the matching key cannot validate existing agent tokens.
 
-Only switch the approved proxy target after the restore drill passes and the owner authorizes recovery. Preserve the previous database for investigation. Define RPO/RTO with the owner; no RPO/RTO guarantee is claimed by this hackathon build. A rehearsal-only schema/data backup/restore drill is recorded in BUILD03_TECHNICAL_NOTES when actually run.
+Only switch the approved proxy target after the restore drill passes and the owner authorizes recovery. Preserve the previous database for investigation. Define RPO/RTO with the owner; no RPO/RTO guarantee is claimed by this hackathon build. The historical isolated backup/restore result is recorded in [testing](TESTING.md#production-packaging-and-recovery-checks); it does not establish a backup of the live preview.
 
 ## Release / rollback / restart
 
@@ -59,4 +66,4 @@ No automatic audit/decision/replay deletion is installed. Keep evidence until th
 - DB unavailable: readiness returns generic 503; keep liveness separate, inspect private DB connectivity/disk/roles, recover without resetting volume.
 - CSP/UI issue: reproduce against built assets and examine browser policy violations. Do not globally disable CSP to conceal a failed release.
 - Mail failure: disable recovery, show honest unavailable state and restore verified delivery before re-enabling it.
-- Certificate renewal: configure the chosen proxy's renewal, expiry monitoring and external HTTPS checks. Validate a dry-run renewal using that provider's documented process after authorization. Real TLS/renewal has **not** been tested locally.
+- Certificate renewal: configure the chosen proxy's renewal, expiry monitoring and external HTTPS checks. Validate a dry-run renewal using that provider's documented process after authorization. External HTTPS was verified on the Render preview; an actual certificate renewal drill remains unverified.

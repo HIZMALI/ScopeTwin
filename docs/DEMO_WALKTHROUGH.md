@@ -1,13 +1,21 @@
-# Read-only judge tour
+# Read-only demo walkthrough
 
-Remote status: **NOT DEPLOYED**. Local rehearsal: [http://127.0.0.1:18733/demo](http://127.0.0.1:18733/demo). Start it with `./scripts/rehearse-production.ps1`; no secret or login is needed for the tour. The ordinary development installation at 18731 honestly shows demo unavailable unless separately configured; its user database is never seeded.
+Open the live [ScopeTwin demo](https://scopetwin-hizmali.onrender.com/demo). No account or secret is required. The public tour reads persisted synthetic artifacts; it does not run API evaluations or mutate evidence when visited.
 
-1. Landing → **Try read-only demo**. The page is explicitly labelled **Synthetic demo data** and reads persisted artifacts from a fixed designated workspace.
-2. **Recorded requests**: inspect the actual $120 ALLOW and $2,400 REVIEW scenarios. The unknown action is DEFAULT_DENY. Request examples omit bearer credentials; the result is a projection of stored evidence.
-3. **Compare the draft**: an unpublished DENY rule above USD $100 produces exactly **2 changed / 2 newly denied** compared with the frozen current baseline. Compare recorded, baseline and candidate independently. Expand evidence fingerprints.
-4. **Human review**: the recorded REVIEW remains REVIEW; an operator's stored APPROVED status documents a choice. Execution performed is **False**. There is no approval button in this public tour.
-5. **Create workspace** enters the real authenticated product: agent keys, policy publishing, live HTTP evaluations, Replay Lab, approvals, actual Usage & Plans. Never show a raw issued key in a recording; acknowledge/save it before continuing.
+1. **Recorded requests:** inspect the stored $120 ALLOW, $2,400 REVIEW and unknown-action DEFAULT_DENY examples. Bearer credentials are omitted.
+2. **Replay Lab:** open [the comparison](https://scopetwin-hizmali.onrender.com/demo/replay). An unpublished DENY rule above USD $100 yields **2 changed / 2 newly denied**. Original, Baseline and Candidate remain distinct; expand the evidence fingerprints.
+3. **Human review:** the recorded REVIEW remains REVIEW. Stored APPROVED status documents a human choice; execution performed is false. There is no public approval button.
+4. **Workspace workflow:** the [video](https://youtu.be/6cyv4wC1CR4) shows authenticated agent/key management, policy publication, real API evaluations, replay, human review, the scoped audit JSON endpoint and Usage & Plans. A separate audit dashboard is not claimed.
 
-The public surface accepts only GET/HEAD at `/`, `/demo`, `/demo/replay` and `/ready` (plus framework liveness `/up`). It has no session middleware or public mutation handler. Demo queries ignore tenant/UUID/filter inputs, restrict the fixed ID and slug, cap displayed results and project safe fields only. Authenticated routes remain protected by their original roles, session/CSRF and agent keys. Setup is CLI-only, opt-in and idempotent, with an explicit disposable database guard.
+To try your own data, register a workspace through the application. Keep issued keys private; no shared demo login exists. Public tour query/UUID inputs cannot select another workspace, and public mutations are rejected. Backboard advice and email recovery remain disabled in production.
 
-Screenshots under `docs/images/` are actual browser captures from synthetic demo/test environments, with no visible bearer token or password. Their capture evidence and browser coverage are in BUILD03_TECHNICAL_NOTES. They are product evidence, not proof of a remote service or real financial outcomes.
+For a local isolated tour, follow [deployment rehearsal instructions](DEPLOYMENT.md#reproduce-the-isolated-local-rehearsal-powershell-7). The ordinary development database is never automatically seeded. Recorded release coverage is in [testing](TESTING.md).
+
+## Screenshots
+
+These are actual local browser captures of synthetic application data, not evidence of real financial outcomes or a successful AI response.
+
+| View    | Desktop                                  | Mobile                                  |
+| ------- | ---------------------------------------- | --------------------------------------- |
+| Landing | [Screenshot](images/landing-desktop.png) | [Screenshot](images/landing-mobile.png) |
+| Demo    | [Screenshot](images/demo-desktop.png)    | [Screenshot](images/demo-mobile.png)    |

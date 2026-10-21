@@ -1,93 +1,63 @@
-# ScopeTwin — architecture contract (v0.1)
+# Architecture
 
-## Stack
-Laravel 13 with first-party React + Inertia TypeScript starter, PostgreSQL, Vite, Tailwind + shadcn/ui. Feature tests with Pest/PHPUnit; use Playwright for critical browser journey if available. Use database-backed queue first; defer Redis until needed.
+ScopeTwin is one Laravel 13 application with React 19/Inertia pages and PostgreSQL persistence. Vite builds the frontend into the same deployment artifact. The Docker image uses non-root FrankenPHP/PHP 8.4 with Caddy serving only `public/`. Evaluation, replay and approval workflows are synchronous; no separate worker, Redis or microservice is required.
 
-## Boundaries
-- Browser UI authenticated with normal Laravel session auth; all UI data is authorized by membership + role.
-- Agent HTTP API authenticated with random high-entropy scoped token, stored ONLY as a keyed prefix and SHA-256 hash; never store or log plaintext after issuance. Support token revocation.
-- `OrganizationContext` is resolved by authenticated membership or token; never from request body.
-- `PolicyEvaluator` is a pure deterministic function over a validated normalized ActionRequest + a published policy snapshot; it has no database writes or external HTTP calls. A separate service persists the decision transactionally.
-- `ReplayService` calls the SAME evaluator against snapshot versions but persists only optional replay result metadata, never executes business tools.
-- An optional `AIExplanationProvider` adapter may use Backboard for advisory summaries later; unavailable API must not break core product. LLM output never controls ALLOW/REVIEW/DENY.
+## Request boundaries
 
-Current implementation: `ReplayAdvisor` is the optional server-only Backboard sidecar, pinned to an explicit assistant/provider/model with aggregate-only input, hard call quotas, safe output validation and best-effort thread cleanup. The single owner-authorized live attempt on2026-10-20 did not yield accepted advice; the flag was restored tofalse and deterministic workflows remained available. No AI response controls authorization. See BACKBOARD_INTEGRATION.md for exact boundaries and evidence.
+| Surface               | Identity and behavior                                                                                |
+| --------------------- | ---------------------------------------------------------------------------------------------------- |
+| Authenticated browser | Laravel session and CSRF; workspace resolved from membership; OWNER/ADMIN mutations and VIEWER reads |
+| Agent API             | Revocable high-entropy bearer key; workspace and agent resolved from the key                         |
+| Public tour           | Stateless GET/HEAD projections from one fixed synthetic workspace; no session or mutation controls   |
+| Optional advisor      | Authenticated OWNER/ADMIN POST on a frozen replay; server-only credentials; disabled in production   |
 
-## Schema — logical (names may adapt to starter)
-- organizations: id uuid, name, slug, created_at
-- organization_memberships: organization_id, user_id, role (OWNER|ADMIN|VIEWER), unique org/user
-- agents: id uuid, organization_id, name, status, created_at
-- agent_api_keys: id uuid, organization_id, agent_id, prefix, key_hash, revoked_at, last_used_at
-- policies: id uuid, organization_id, name, status (ACTIVE|DISABLED), created_at
-- policy_versions: id uuid, policy_id, organization_id, version INTEGER, state (DRAFT|PUBLISHED), conditions JSON, effect (ALLOW|REVIEW|DENY), reason_code, created_at, published_at
-- action_requests: id uuid, organization_id, agent_id, idempotency_key, action_name, amount_minor nullable, currency nullable, destination_domain nullable, normalized_request_json, created_at. Unique `(organization_id, agent_id, idempotency_key)`.
-- policy_decisions: id uuid, organization_id, agent_id, action_request_id, policy_version_id nullable, decision (ALLOW|REVIEW|DENY), reason_code, evaluated_at
-- audit_events: id uuid, organization_id, actor_type, actor_id nullable, event_type, subject_id, metadata_json (NON SENSITIVE), occurred_at
-- BUILD 02: approval_requests, replay_runs/replay_results with frozen manifests/inputs and three outcomes. Usage is computed from real scoped domain rows; no billing/paid entitlement tables exist.
+No submitted `organization_id` authorizes access. Resource queries include workspace scope; foreign UUIDs cannot read or mutate another workspace's records. The current browser context uses the first membership; workspace switching/invitations are not implemented.
 
-## Typed action input
-Allowed fields: action_name (known string, <=128), resource_type optional, amount_minor optional nonnegative integer <= reasonable max, currency ISO code optional, destination_domain optional validated DNS-like hostname, resource_label optional. Reject unknown unsafe object structures in critical fields. No dynamic JavaScript eval, `eval()`, regex-from-tenant, SQL snippets, or arbitrary policy expressions.
+## Evaluation and policy versions
 
-## Policy conditions DSL
-Define a safe typed finite policy condition schema, e.g.:
-```
+[`PolicyEvaluator`](../app/Domain/PolicyEvaluator.php) is a pure function over normalized input and a policy snapshot. [`ActionSchema`](../app/Domain/ActionSchema.php) and [`ConditionSchema`](../app/Domain/ConditionSchema.php) define finite fields, types and operators; there are no executable tenant expressions.
+
+Conditions use AND across fields. Supported comparators are `eq`, `in`, `gt`, `gte`, `lt` and `lte` where valid for the field. A matching DENY takes precedence over REVIEW, then ALLOW; no match yields `DENY / DEFAULT_DENY`. Equal-effect matches have deterministic ordering. Live evaluation uses only active published versions; saving a draft has no live effect.
+
+```json
 {
-  "action_name": {"eq": "refund.issue"},
-  "amount_minor": {"lte": 50000},
-  "currency": {"eq": "USD"}
+    "action_name": { "eq": "refund.issue" },
+    "amount_minor": { "lte": 50000 },
+    "currency": { "eq": "USD" }
 }
 ```
-Supported comparators: `eq`, `in`, `gt`, `gte`, `lt`, `lte` where appropriate by field type. Conditions across fields are AND. Multiple values for same field are not necessary in Build01. Reject invalid operators and types. Match on normalized input.
 
-Policy precedence: If any matching PUBLISHED active DENY: DENY; else if matching REVIEW: REVIEW; else if matching ALLOW: ALLOW; else DENY (DEFAULT_DENY). A DENY rule cannot be trumped by an ALLOW. For deterministic tie-break within the same effect, order by policy ID/version consistently. Drafts do not affect live requests. Publish atomically and preserve old versions.
+The evaluation service locks and rechecks relevant agent/key state, applies the evaluator, and transactionally saves normalized input, decision, audit metadata and any REVIEW approval. A unique organization/agent/idempotency-key tuple prevents duplicate requests. Identical retries return the original saved response even after a policy change; changed payloads return 409.
 
-## API contract
-`POST /api/v1/agent/actions/evaluate`
-Headers: `Authorization: Bearer <token>` and `Idempotency-Key: <opaque-id>`
-Body:
-```
-{
-  "action_name": "refund.issue",
-  "amount_minor": 240000,
-  "currency": "USD",
-  "resource_type": "refund"
-}
-```
-Response HTTP 200 on successful evaluation, including DENY (business decision, not transport authentication failure):
-```
-{
-  "decision_id": "uuid",
-  "decision": "REVIEW",
-  "reason_code": "REFUND_REQUIRES_APPROVAL",
-  "matched_policy_version_id": "uuid",
-  "approval_required": true
-}
-```
-Authentication failure uses 401; malformed input 422; forbidden tenant membership 403/404; throttling 429. An identical key + identical input returns same saved result, without new side effect. Key reused with different input returns 409 conflict. Enforce a DB unique constraint and safe transaction under concurrent duplicate requests. If unusual conflict races remain, document and test them.
+## Data model
 
-## Browser pages (Build01)
-- Auth: login/register from official starter, provision first organization.
-- Dashboard: REAL count cards and recent decisions, not dummy figures.
-- Agents: list/create/detail/revoke key, show secret once.
-- Policies: list/create/edit/publish with typed fields and explainers.
-- Decision log: real records with filtering or pagination.
-Keep navigation minimal; non-built sections should not appear as clickable dead links.
+The authoritative schema is in [versioned migrations](../database/migrations).
 
-## Data security
-- Enforce organization policy and scoped queries in every controller/service, including UUID route binding.
-- Credentials redacted on logs and never present in Inertia props after initial token creation.
-- Ensure rate limiting, auth, CSRF on browser forms, input validation, audit records for important changes.
-- Never call external refund or payout APIs in the hackathon demo. No real PII in fixture datasets.
-- No claim of formal security certifications or production maturity without verification.
+| Tables                                      | Responsibility                                                              |
+| ------------------------------------------- | --------------------------------------------------------------------------- |
+| `organizations`, `organization_memberships` | Workspace identity, membership and roles                                    |
+| `agents`, `agent_api_keys`                  | Scoped agent identity, keyed credential hash, revocation                    |
+| `policies`, `policy_versions`               | Current published pointer and preserved draft/published definitions         |
+| `action_requests`, `policy_decisions`       | Normalized input, idempotency and recorded deterministic outcomes           |
+| `replay_runs`, `replay_results`             | Frozen policy/input manifests and Original/Baseline/Candidate evidence      |
+| `approval_requests`                         | Pending/terminal documentary review, expiry, reviewer and freshness context |
+| `audit_events`                              | Scoped finite events with non-sensitive metadata                            |
+| `advisor_explanations`, `advisor_quotas`    | Optional validated advice, cache reservations and call counters             |
 
-## Operational quality
+Domain identifiers are UUIDs. Foreign keys, unique constraints and organization/time indexes support consistency and scoped queries. Laravel tables additionally hold users, sessions, cache and queue infrastructure. Amounts use integer minor units. Raw agent keys are returned once and are not stored in session flash or Inertia props; their stored HMAC hashes depend on the stable `APP_KEY`.
 
-BUILD 03.5 adds `ReplayAdvisor` and a session/CSRF-protected POST to the same monolith. It reads frozen aggregates only and never evaluates or writes policies, decisions, approvals or replay facts. Additive `advisor_explanations` / `advisor_quotas` tables store validated advisory text, hash/lease state and quota attempts. User/organization locks reserve quota before network I/O, with shared fingerprint caching. Output is bounded JSON rendered as escaped text. Public routes never call the adapter. Config defaults disabled and exposes no key/model settings to React. See BACKBOARD_INTEGRATION.md for thread persistence, cleanup ambiguity, default assistant context, rolling-user/UTC-day quotas and cost limits. Live provider/model availability remains unverified.
+## Replay and human review
 
-BUILD 03: `routes/public.php` is stateless and has no session/cache writes for the public landing/demo/readiness endpoints. Demo reads only a fixed reserved workspace ID plus slug, bounded frozen replay projections and a documentary approval in a deliberately disposable installation. CLI setup is off by default and refuses user DBs/existing workspaces. Main authenticated routes remain unchanged in scope and role behavior.
+Replay captures the current published baseline, an unpublished candidate and selected historical inputs. It compares three separate facts: Original recorded decision, simulated Baseline and simulated Candidate. Frozen manifests and fingerprints prevent later edits from changing an existing report. The same evaluator is reused. Only replay/evidence rows and safe audit metadata are written; no new live decisions, approvals or external actions are produced by replay. Default sample size is 100; maximum 500; manifests are bounded to 1 MiB.
 
-The production image uses digest-pinned FrankenPHP/PHP 8.4 with bundled React assets, a non-root process and a separate private PostgreSQL service. No automatic startup migration/seed/key generation occurs; runtime DB DML and migration ownership are separated. Nonce CSP, safe response headers, explicit proxy/host trust, throttled registration/recovery and honest unavailable mail recovery support the release. `/up` is liveness, `/ready` tests migrated DB infrastructure. See DEPLOYMENT.md, OPERATIONS_RUNBOOK.md and BUILD03_TECHNICAL_NOTES.md for verified local evidence and external release gates.
-- `.env.example` with safe placeholders and documented local setup; no secret `.env` commits.
-- Setup script or clear README for Windows PowerShell, Docker Compose optional for local PostgreSQL.
-- Seed demo scenarios only in development/explicit demo environments.
-- Unique indexes on key multi-tenant tables; migrations reversible; indexes on created_at for decision log queries.
+A new REVIEW evaluation creates one documentary approval. Pending reviews expire after 24 hours; policy changes, agent disablement or revocation of the originating key invalidate them. GET derives expiry/staleness without writes; resolution rechecks under locks and rejects invalid/terminal state with 409. Approval/rejection never changes the original REVIEW or issues an execution credential. No scheduler is needed to enforce freshness.
+
+## Optional AI boundary
+
+[`ReplayAdvisor`](../app/Services/ReplayAdvisor.php) can explain frozen aggregate transitions after a deliberate authenticated click. It cannot evaluate policy, approve requests or write deterministic facts. Inputs exclude raw actions, identifiers, policy definitions and customer content. Explicit assistant/provider/model binding, call quotas, bounded JSON validation and best-effort thread deletion are documented in [Backboard integration](BACKBOARD_INTEGRATION.md). Production remains disabled; successful live LLM advice is unverified.
+
+## Deployment and security boundary
+
+Production separates migration ownership from a DML-only runtime account. Startup validates/caches configuration and assets; it does not migrate, seed or generate keys. `/up` is liveness; `/ready` checks migrated database/session/cache infrastructure. Debug-off errors, nonce CSP, secure cookies, rate limits and explicit proxy/host trust protect the deployed surface. See [deployment](DEPLOYMENT.md) for the verified Render proxy configuration and [operations](OPERATIONS_RUNBOOK.md) for backups and recovery.
+
+Scope and historical immutability are application controls, not PostgreSQL RLS, WORM storage or cryptographic attestation. Database owners remain privileged. Tests and observed live checks are scoped evidence, not an independent penetration test or compliance certification. See [testing](TESTING.md).

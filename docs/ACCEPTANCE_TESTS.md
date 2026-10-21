@@ -1,8 +1,9 @@
-# ScopeTwin — acceptance and adversarial test contract
+# Acceptance and adversarial test contract
 
 A result is accepted only after a command or browser journey truly passes. Do not report anticipated passes as measured.
 
 ## Core functional tests
+
 - Authenticated user is owner of a newly provisioned organization after signup.
 - New agent creates token once. Token authenticates agent endpoint; raw token is not persisted and cannot be redisplayed.
 - `customer.read` matches ALLOW for a properly configured published policy.
@@ -19,19 +20,22 @@ A result is accepted only after a command or browser journey truly passes. Do no
 - Seed fixtures or demo accounts are not generated in production unless explicitly enabled.
 
 ## Multi-tenancy attack tests
+
 - User A cannot list/read/update/delete agent, policy, decision or audit record of organization B even when UUID is known.
 - Agent API token A may evaluate only for its own organization and agent; no body tenant override.
 - Policy snapshot and replay cannot reference a decision from a different organization.
 - Organization B cannot revoke keys belonging to A.
 - Restricted roles cannot publish policy or create agent keys.
 
-## Replay Lab tests (Build02)
+## Replay Lab tests
+
 - Same historical event + same policy snapshot yields same deterministic decision.
 - Replay of draft against prior events produces a clear before/after decision-change table.
 - Replay cannot create real approval requests, business actions, network tool calls or new live decision entries.
 - Original decision history remains unchanged when policy versions are updated.
 
 ## UI and documentation checks
+
 - Real login and agent creation, policy publish, API evaluation, decision log visible in browser.
 - Sidebar links functional; no decorative controls without behavior.
 - No mobile overflow at ~390px width; tables scroll or collapse.
@@ -39,8 +43,12 @@ A result is accepted only after a command or browser journey truly passes. Do no
 - `php artisan test` passes and `npm run build` passes.
 - If Playwright is available, run a happy-path browser test; otherwise explicitly report skipped reason.
 
-## Reporting format
+## Release, approval and advisor checks
 
-BUILD 03 additionally verifies opt-in/idempotent setup refusal on user data, fixed-tenant public projections, zero public GET writes/cookies, credential/foreign-UUID leakage, blocked public mutations, registration/login abuse with spoofed forwarded IPs, explicit trusted-proxy behavior, generic production errors, no false mail delivery, security headers/nonces and separate readiness. Production-mode HTTP/browser tests use a new isolated PostgreSQL service and built assets at 18733, with desktop/mobile, axe and dialog checks. Runtime DB privilege, private file/host/CSRF probes, 10,000-row query/replay scale, modest load and a 13-table backup/restore drill are separate executable checks. Remote TLS/SMTP, external provider integration and independent certification must stay NOT TESTED until actually verified.
-At the end of a Codex run, output:
-1) implemented behavior, 2) paths changed, 3) test commands and counts/results, 4) demo URLs/credentials if local dev and safe to share, 5) known blockers, 6) proposed next build. Never invent a test count.
+- Public tour reads only a reserved synthetic workspace, has no session/cache writes or cookies, leaks no credentials/foreign records and rejects mutations. Fixture setup is opt-in, idempotent and refuses user databases.
+- Reviews expire at 24 hours; changed published policy context, revoked originating key and disabled agent block resolution. Concurrent resolve attempts produce one terminal result; original REVIEW and no-execution state remain intact.
+- Registration/login throttles cannot be bypassed with untrusted forwarded IPs. Host/proxy trust, CSRF, nonce CSP, generic production errors and unavailable email recovery are tested on their actual deployment path.
+- Runtime database privileges exclude schema ownership/creation. Readiness is distinct from liveness. Private paths are inaccessible.
+- Optional advisor tests cover role/tenant/CSRF boundaries, explicit assistant binding, aggregate-only input, content decoding, output validation, provider failure/timeout, quotas/cache/concurrency and best-effort cleanup. Automated tests fake HTTP and forbid stray requests; they do not establish live provider success.
+
+See [testing](TESTING.md) for commands, dated SQLite/PostgreSQL/browser results and unverified limits. Run database, load, recovery and live-provider checks only on approved isolated targets. Record actual outcomes and skipped checks; never present mock output, anticipated passes or a historical result as a new live verification.
